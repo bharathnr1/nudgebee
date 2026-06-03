@@ -932,7 +932,23 @@ func (s *K8sSource) parseRelayDataArray(response map[string]interface{}, resourc
 		return nil, fmt.Errorf("response.data is not a map")
 	}
 
-	findings, ok := data["findings"].([]interface{})
+	// Treat a missing / null `findings` as "no findings". The relay returns
+	// this shape when the requested resource type does not exist in the
+	// cluster — e.g. Karpenter CRDs on a GKE cluster, which currently
+	// surface as a noisy WARN with full stack trace on every build:
+	//
+	//   level=WARN msg="failed to parse Karpenter CRD response"
+	//   resource_type=nodepools error="response.data.findings is not an array"
+	//
+	// Distinguish only the truly-malformed case (key present, non-null,
+	// non-array) from the benign empty-cluster case.
+	findingsRaw, present := data["findings"]
+	if !present || findingsRaw == nil {
+		s.logger.Info("no findings in response (key absent or null)",
+			"resource_type", resourceType)
+		return []interface{}{}, nil
+	}
+	findings, ok := findingsRaw.([]interface{})
 	if !ok {
 		return nil, fmt.Errorf("response.data.findings is not an array")
 	}
