@@ -8985,7 +8985,8 @@ var table_metadata = map[string]TableDefinition{
 					))
 					FROM user_roles ur
 					LEFT JOIN roles r ON r.value = ur.role
-					WHERE ur.user_id = u.id),
+					WHERE ur.user_id = u.id
+						AND ur.tenant_id = ug.tenant),
 					'[]'::json
 				) as user_roles,
 				COALESCE(
