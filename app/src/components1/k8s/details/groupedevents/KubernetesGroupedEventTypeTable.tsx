@@ -9,6 +9,7 @@ import { applyFiltersOnRouter } from '@lib/router';
 import { titleCaseForAggregationKey, toSeverityLevel } from 'src/utils/common';
 import Datetime from '@common-new/format/Datetime';
 import CustomTable2 from '@common-new/tables/CustomTable2';
+import KubernetesEventsTable from '@components1/events/KubernetesEvents';
 import SeverityIcon from '@components1/ds/SeverityIcon';
 import { Label } from '@components1/ds/Label';
 import { Text } from '@components1/common';
@@ -286,7 +287,28 @@ const KubernetesGroupedEventTypeTable: React.FC<KubernetesGroupedEventTypeTableP
           onSortChange={undefined}
           showExpandable
           expandable={{
-            tabs: [{ text: 'Events', key: 'events-drilldown-events' }],
+            tabs: [
+              {
+                text: 'Events',
+                key: 'events-drilldown-events',
+                componentFn: (_opt: any, query: any) => (
+                  <KubernetesEventsTable
+                    accountId={accountId}
+                    defaultQuery={query}
+                    enableFilters={false}
+                    tableColumns={
+                      [
+                        { name: 'Severity', width: '10%' },
+                        { name: 'Application', component: 'Subject Name', width: '20%' },
+                        { name: 'Message', width: '40%' },
+                        { name: 'Alert Status', width: '4%' },
+                        '',
+                      ] as any
+                    }
+                  />
+                ),
+              },
+            ],
           }}
           tableHeadingCenter={['Severity', 'Alert Status', 'Subjects']}
         />
