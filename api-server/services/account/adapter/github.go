@@ -785,8 +785,33 @@ type argoCDApplication struct {
 	Spec     argoCDSpec     `json:"spec"`
 }
 
+// argoCDAppNameRegex validates the application name before shell interpolation.
+// Mirrors the regex in eventrule/playbooks/action_argocd.go.
+var argoCDAppNameRegex = regexp.MustCompile(`^[a-zA-Z0-9._-]+(/[a-zA-Z0-9._-]+)?$`)
+
+// argoCDServerHostRegex validates the server host (after scheme strip) before
+// shell interpolation. Accepts `host` and `host:port` for DNS names and IPv4;
+// rejects shell metacharacters, paths, and anything outside `[a-zA-Z0-9.-]`.
+// IPv6 (`[::1]:8080`) is not supported by this regex — extremely rare for
+// ArgoCD server endpoints. Sibling action_argocd.go avoids this entirely by
+// passing the URL via the `$ARGOCD_SERVER` env var from a k8s secret; that
+// pattern is preferred long-term but requires a different secret contract
+// than `fetchArgoCDIntegrationForGithub` currently exposes.
+var argoCDServerHostRegex = regexp.MustCompile(`^[a-zA-Z0-9.-]+(:[0-9]+)?$`)
+
 // getGitRepoFromArgoCD queries ArgoCD to get the Git repository URL for values files
 func getGitRepoFromArgoCD(ctx AccountAdapterContext, accountID, argoCDAppName string) (string, string, string, error) {
+	// Fail-fast on empty accountID: downstream fetchArgoCDIntegrationForGithub
+	// runs a DB query scoped by account_id, and an empty value would either
+	// return no rows or — in the event of a future query-builder bug — leak
+	// rows from another tenant. Reject explicitly so the contract is local.
+	if accountID == "" {
+		return "", "", "", fmt.Errorf("accountID is required")
+	}
+	if !argoCDAppNameRegex.MatchString(argoCDAppName) {
+		return "", "", "", fmt.Errorf("invalid ArgoCD application name %q: must contain only alphanumeric characters, dashes, dots, underscores, or a single slash", argoCDAppName)
+	}
+
 	// Fetch ArgoCD integration configuration
 	secretName, serverURL, authTokenKeyInSecret, insecure, err := fetchArgoCDIntegrationForGithub(ctx, accountID)
 	if err != nil {
@@ -797,6 +822,12 @@ func getGitRepoFromArgoCD(ctx AccountAdapterContext, accountID, argoCDAppName st
 	// Build ArgoCD CLI command
 	serverHost := strings.TrimPrefix(serverURL, "https://")
 	serverHost = strings.TrimPrefix(serverHost, "http://")
+	// serverHost is interpolated into the shell command below — validate it
+	// the same way as argoCDAppName so a tenant admin who's misconfigured
+	// (or compromised) cannot inject shell via the integration's server URL.
+	if !argoCDServerHostRegex.MatchString(serverHost) {
+		return "", "", "", fmt.Errorf("invalid ArgoCD server host %q: must be a hostname[:port] with only alphanumeric characters, dots, dashes", serverHost)
+	}
 
 	insecureFlag := ""
 	if insecure {
