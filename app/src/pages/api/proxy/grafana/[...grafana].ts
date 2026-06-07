@@ -108,8 +108,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       'X-NB-REQUEST-ID': crypto.randomUUID(),
     };
 
+    // Forward client x-* headers to the relay, but never let a client-supplied
+    // header overwrite the server-set identity/auth headers above.  Node.js
+    // lowercases req.headers keys; the Headers spec is case-insensitive, so a
+    // client sending "x-tenant-id" would collide with "X-TENANT-ID" at the
+    // HTTP layer and could spoof the authenticated identity on the relay.
+    const protectedHeaders = new Set(['x-secret-key', 'x-user-id', 'x-tenant-id', 'x-nb-request-id', 'x-nb-account-id']);
     for (const k of Object.keys(req.headers)) {
-      if (k.toLowerCase().startsWith('x-')) {
+      if (k.toLowerCase().startsWith('x-') && !protectedHeaders.has(k.toLowerCase())) {
         headers[k] = req.headers[k] as string;
       }
     }
