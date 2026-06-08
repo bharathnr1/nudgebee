@@ -1,0 +1,83 @@
+title = "Nudgebee internal-leak gitleaks config"
+
+# Separate from .gitleaks.toml because the two have different jobs:
+#   .gitleaks.toml          — catches *credentials* (default ruleset, entropy
+#                             checks); deliberately exempts test files because
+#                             default rules generate noise on random-hex
+#                             fixtures.
+#   .gitleaks-internal.toml — catches *internal references* (env-suffixed
+#                             deployment names, internal hostnames, internal
+#                             team prefixes); scans test files too.
+#
+# Driven by a parallel job in .github/workflows/secret-scanning.yaml.
+# When a known-deferred path is fixed in a follow-up PR, drop its line from
+# `[allowlist].paths` so re-introductions are caught.
+
+[extend]
+useDefault = false  # custom rules only; no entropy/secret detection
+
+[[rules]]
+id = "internal-pollux-hostname"
+description = "Internal staging domain pollux.in (and subdomains) must not appear in code"
+# Case-insensitive: DNS labels are case-insensitive per RFC 1035, so POLLUX.IN
+# would resolve identically. Subdomain optional so bare pollux.in is also caught.
+regex = '''(?i)\b([a-z0-9-]+\.)?pollux\.in\b'''
+tags = ["internal-leak", "hostname"]
+
+[[rules]]
+id = "internal-nudgebee-env-suffix"
+description = "Internal env-suffixed deployment names leak production topology"
+# Case-insensitive: k8s resource names are required to be lowercase (DNS-1123),
+# but the string can appear capitalized in env vars (KUBE_CONTEXT=NUDGEBEE-DEV),
+# error messages, comments, and docs — all of which the scanner should catch.
+regex = '''(?i)\bnudgebee-(dev|prod|test|civo)\b'''
+tags = ["internal-leak", "deployment"]
+
+[[rules]]
+id = "internal-beehive-db-prefix"
+description = "Internal team-prefixed DB names (beehive-{env}-pg) must not appear in code"
+# Case-insensitive: PostgreSQL identifiers normalize to lowercase when unquoted,
+# but BEEHIVE-DEV-PG could appear capitalized in connection strings, env vars,
+# or documentation.
+regex = '''(?i)\bbeehive-(dev|test|prod)-pg\b'''
+tags = ["internal-leak", "database"]
+
+[allowlist]
+description = "Files where these internal references are documented (configs, memory) or deferred to a follow-up PR"
+
+paths = [
+  # This config defines the patterns as regex literals — false positive on itself.
+  '''(^|/)\.gitleaks-internal\.toml$''',
+
+  # CLAUDE.md / agent memory files intentionally document the leak patterns.
+  '''(^|/)CLAUDE\.md$''',
+
+  # LLM benchmark fixtures — deferred. Mechanical rename works structurally
+  # but RAGAS goldens need re-recording against the live LLM. Tracked
+  # separately so re-recording happens with proper bandwidth.
+  '''(^|/)llm/benchmark/llm/agents/.+/fixtures/.+\.ya?ml$''',
+
+  # Comments in collector / knowledge-graph source. Cheap follow-up scrub,
+  # not bundled here to keep the test-scrub PR reviewable.
+  '''(^|/)collector-server/cloud-collector/providers/gcloud/gcloud_monitoring_incidents_v3\.go$''',
+  '''(^|/)collector-server/cloud-collector/providers/aws/usage_report\.go$''',
+  '''(^|/)api-server/services/knowledge_graph/sources/gcp_source\.go$''',
+
+  # Customer-facing GCP deployment templates default to `nudgebeeProjectId:
+  # nudgebee-prod`. Needs semantic review (changing the default affects what
+  # customers see in template defaults) — separate PR.
+  '''(^|/)collector-server/cloud-collector/resources/gcp_resources/.+\.ya?ml$''',
+
+  # Helm chart defaults point at `nudgebee-prod-documents.s3.amazonaws.com`.
+  # Operational defaults; changing them is a deployment-config decision.
+  '''(^|/)deploy/kubernetes/nudgebee/values\.yaml$''',
+  '''(^|/)deploy/kubernetes/nudgebee/templates/secrets-nudgebee\.yaml$''',
+
+  # CI workflows hardcode the real `nudgebee-dev` cluster name + the
+  # `nudgebee-prod-documents` S3 bucket. Right fix is GitHub Actions
+  # vars/secrets; needs ops coordination.
+  '''(^|/)\.github/workflows/(nudgebee-build-test|nudgebee-build-test-ci|aws-cf-templates-upload)\.ya?ml$''',
+
+  # Standalone Dynatrace OTel collector config (real Dynakube example).
+  '''(^|/)dynakube-ksm-otel\.ya?ml$''',
+]
