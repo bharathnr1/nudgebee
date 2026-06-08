@@ -1132,7 +1132,7 @@ const KubernetesLLMRequestResponse = (props) => {
                           borderRadius: ds.radius.sm,
                           transition: 'all 0.2s ease',
                           '&:hover': {
-                            backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                            backgroundColor: 'var(--ds-gray-alpha-100)',
                           },
                         }}
                       >
@@ -1206,7 +1206,7 @@ const KubernetesLLMRequestResponse = (props) => {
                           borderRadius: ds.radius.sm,
                           transition: 'all 0.2s ease',
                           '&:hover': {
-                            backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                            backgroundColor: 'var(--ds-gray-alpha-100)',
                           },
                         }}
                       >

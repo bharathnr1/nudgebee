@@ -163,7 +163,7 @@ const ReferencesPopover = ({ anchorEl, open, onClose, references = [], accountId
         '& .MuiPopover-paper': {
           pointerEvents: 'auto',
           mt: ds.space[2],
-          boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.15)',
+          boxShadow: 'var(--ds-overlay-shadow)',
           borderRadius: ds.radius.lg,
           border: '1px solid var(--ds-gray-200)',
           maxWidth: ds.space.mul(1, 100),

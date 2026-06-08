@@ -511,7 +511,7 @@ const FollowupSheet = ({ followup, accountId, conversationId, selectedModel, pop
               placeItems: 'center',
               padding: 0,
               transition: 'all 0.12s',
-              '&:hover': { color: 'var(--ds-red-600)', background: 'rgba(220,38,38,0.08)' },
+              '&:hover': { color: 'var(--ds-red-600)', background: 'color-mix(in srgb, var(--ds-red-600) 8%, transparent)' },
             }}
           >
             <CloseIcon sx={{ fontSize: 'var(--ds-text-body-lg)' }} />
@@ -954,8 +954,8 @@ const FollowupSheet = ({ followup, accountId, conversationId, selectedModel, pop
     const noPending = pendingAnswer === noOption;
     const someonePending = pendingAnswer !== null;
 
-    const yesBg = isDanger ? '#dc2626' : 'var(--ds-blue-600)';
-    const yesBgHover = isDanger ? '#b91c1c' : 'var(--ds-blue-600)';
+    const yesBg = isDanger ? 'var(--ds-red-600)' : 'var(--ds-blue-600)';
+    const yesBgHover = isDanger ? 'var(--ds-red-700)' : 'var(--ds-blue-600)';
 
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: ds.space[2], padding: `${ds.space.mul(0, 7)} ${ds.space.mul(0, 7)}` }}>
@@ -1218,7 +1218,7 @@ const FollowupSheet = ({ followup, accountId, conversationId, selectedModel, pop
                 wordBreak: 'break-word',
                 marginBottom: sheetType === 'single' || sheetType === 'multi' ? ds.space.mul(0, 7) : '0px',
                 paddingBottom: sheetType === 'single' || sheetType === 'multi' ? ds.space[3] : '0px',
-                borderBottom: sheetType === 'single' || sheetType === 'multi' ? '1px solid #EDF0F4' : 'none',
+                borderBottom: sheetType === 'single' || sheetType === 'multi' ? '1px solid var(--ds-gray-200)' : 'none',
                 '& p': { margin: `0 0 ${ds.space[2]}` },
                 '& p:last-child': { margin: 0 },
                 '& code': {

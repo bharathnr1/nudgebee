@@ -95,7 +95,7 @@ const CollapsibleSection = ({ icon, label, count, defaultExpanded, children }) =
           padding: `${ds.space[2]} ${ds.space[3]}`,
           backgroundColor: 'var(--ds-background-200)',
           cursor: 'pointer',
-          borderBottom: expanded ? '1px solid #e5e7eb' : 'none',
+          borderBottom: expanded ? '1px solid var(--ds-gray-200)' : 'none',
         }}
       >
         {expanded ? (
@@ -240,7 +240,7 @@ const NumberedCodeBlock = ({ code, startLine, attachedToHeader, maxHeight = ds.s
         overflow: 'auto',
         borderRadius: attachedToHeader ? `0 0 ${ds.radius.sm} ${ds.radius.sm}` : ds.radius.sm,
         border: '1px solid var(--ds-gray-200)',
-        borderTop: attachedToHeader ? 'none' : '1px solid #e5e7eb',
+        borderTop: attachedToHeader ? 'none' : '1px solid var(--ds-gray-200)',
         maxHeight,
       }}
     >
@@ -397,7 +397,7 @@ const CitationItem = ({ citation, defaultExpanded }) => {
           padding: `${ds.space.mul(0, 3)} ${ds.space.mul(0, 5)}`,
           backgroundColor: 'var(--ds-gray-100)',
           cursor: hasSnippet ? 'pointer' : 'default',
-          borderBottom: expanded && hasSnippet ? '1px solid #e5e7eb' : 'none',
+          borderBottom: expanded && hasSnippet ? '1px solid var(--ds-gray-200)' : 'none',
         }}
       >
         {hasSnippet &&
@@ -612,7 +612,7 @@ const executionStripStyle = (status, verificationPassed) => {
       bg: 'var(--ds-green-100)',
       border: 'var(--ds-green-200)',
       fg: 'var(--ds-green-700)',
-      icon: <CheckCircle sx={{ fontSize: 18, color: verificationPassed === false ? '#ca8a04' : '#16a34a' }} />,
+      icon: <CheckCircle sx={{ fontSize: 18, color: verificationPassed === false ? 'var(--ds-amber-600)' : 'var(--ds-green-600)' }} />,
     };
   }
   return {

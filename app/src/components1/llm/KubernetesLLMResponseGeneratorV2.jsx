@@ -1055,9 +1055,9 @@ const KubernetesLLMResponseGenerator = ({
                       tooltipStyle={{
                         backgroundColor: 'var(--ds-background-100)',
                         color: 'var(--ds-gray-700)',
-                        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+                        boxShadow: 'var(--ds-overlay-shadow)',
                         padding: 0,
-                        border: '1px solid rgba(0,0,0,0.08)',
+                        border: '1px solid var(--ds-gray-alpha-200)',
                         borderRadius: ds.radius.lg,
                       }}
                       title={

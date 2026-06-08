@@ -80,8 +80,8 @@ function ConversationCollapsableCard({
             toolData.type != 'response' && toolData.type != 'question'
               ? `${ds.space[2]} ${ds.space.mul(0, 5)} ${ds.space[2]} ${ds.space[4]}`
               : `${ds.space[3]} ${ds.space[4]} 0 ${ds.space[4]}`,
-          backgroundColor: toolData.type == 'question' ? '#F6F6F6' : 'var(--ds-background-100)',
-          borderTop: collapsedObj[idx] ? `1.5px solid ${'var(--ds-blue-400)'}` : 'none',
+          backgroundColor: toolData.type == 'question' ? 'var(--ds-gray-100)' : 'var(--ds-background-100)',
+          borderTop: collapsedObj[idx] ? '1.5px solid var(--ds-blue-400)' : 'none',
         }}
       >
         <Box

@@ -223,11 +223,11 @@ const MessageItem = ({
       </Box>
     );
   } else if (isTask) {
-    let dotBorderColor = '#94A3B8';
+    let dotBorderColor = ds.brand[300];
     if (message.response_status === 'in_progress') {
       dotBorderColor = 'var(--ds-blue-600)';
     } else if (message.response_status === 'waiting') {
-      dotBorderColor = '#F59E0B';
+      dotBorderColor = ds.amber[500];
     }
     timelineIcon = (
       <>
@@ -247,7 +247,7 @@ const MessageItem = ({
             sx={{
               width: '1.5px',
               flexGrow: 1,
-              background: `linear-gradient(to bottom, #CBD5E1, #E2E8F0)`,
+              background: `linear-gradient(to bottom, ${ds.gray[300]}, ${ds.gray[200]})`,
               mt: ds.space[1],
             }}
           />

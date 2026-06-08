@@ -61,9 +61,9 @@ const tokenDisplayStyles = {
 const tooltipStyles = {
   backgroundColor: 'var(--ds-background-100)',
   color: 'var(--ds-gray-700)',
-  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+  boxShadow: 'var(--ds-overlay-shadow)',
   padding: 0,
-  border: `1px solid ${'var(--ds-blue-400)'}`,
+  border: '1px solid var(--ds-blue-400)',
   borderRadius: ds.radius.lg,
   maxWidth: ds.space.mul(1, 105),
   maxHeight: 'none',
@@ -1273,7 +1273,7 @@ export const AgentTokenUsage = ({ agentData }) => {
   return (
     <Tooltip title={tooltipContent} placement='bottom' tooltipStyle={tooltipStyles}>
       <Box sx={tokenDisplayStyles}>
-        <IoIosStats size={12} color='#666' />
+        <IoIosStats size={12} color='var(--ds-gray-500)' />
       </Box>
     </Tooltip>
   );
