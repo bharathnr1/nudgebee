@@ -82,7 +82,7 @@ const GenericEvidence = ({ recommendation, category, ruleName, estimatedSavings 
             .slice(0, 15)
             .map((field) => (
               <Box key={field.key} sx={{ overflow: 'hidden', wordBreak: 'break-word' }}>
-                <Typography sx={{ fontSize: ds.text.caption, color: ds.gray[500], fontWeight: ds.weight.semibold, mb: '2px' }}>
+                <Typography sx={{ fontSize: ds.text.caption, color: ds.gray[500], fontWeight: ds.weight.semibold, mb: ds.space[0] }}>
                   {field.label}
                 </Typography>
                 <Typography sx={{ fontSize: ds.text.small, color: ds.gray[700] }}>

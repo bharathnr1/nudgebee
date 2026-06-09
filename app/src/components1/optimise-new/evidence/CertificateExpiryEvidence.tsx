@@ -103,7 +103,7 @@ const CertificateExpiryEvidence = ({ recommendation, estimatedSavings }: Certifi
             variant='determinate'
             value={(countdownValue / countdownMax) * 100}
             sx={{
-              height: '8px',
+              height: ds.space[2],
               borderRadius: ds.radius.sm,
               backgroundColor: ds.gray[200],
               '& .MuiLinearProgress-bar': {

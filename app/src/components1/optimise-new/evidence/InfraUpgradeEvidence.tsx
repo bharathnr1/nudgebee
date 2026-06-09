@@ -241,7 +241,7 @@ const VersionBadge = ({ label, version, variant }: { label: string; version: str
   const tone = VERSION_BADGE_TONE[variant];
   return (
     <Box sx={{ textAlign: 'center' }}>
-      <Typography sx={{ fontSize: ds.text.caption, color: ds.gray[500], mb: '2px' }}>{label}</Typography>
+      <Typography sx={{ fontSize: ds.text.caption, color: ds.gray[500], mb: ds.space[0] }}>{label}</Typography>
       <Box
         component='span'
         sx={{
@@ -254,7 +254,7 @@ const VersionBadge = ({ label, version, variant }: { label: string; version: str
           border: `1px solid ${tone.border}`,
           borderRadius: ds.radius.md,
           px: ds.space[2],
-          py: '2px',
+          py: ds.space[0],
         }}
       >
         {version}

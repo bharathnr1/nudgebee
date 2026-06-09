@@ -468,8 +468,8 @@ const SummaryView = () => {
                   ) : (
                     <Box
                       sx={{
-                        width: '32px',
-                        height: '32px',
+                        width: ds.space[6],
+                        height: ds.space[6],
                         borderRadius: ds.radius.pill,
                         backgroundColor: ds.blue[600],
                         display: 'flex',

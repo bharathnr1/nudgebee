@@ -115,7 +115,7 @@ const CISSecurityEvidence = ({ recommendation, ruleName: _ruleName, estimatedSav
               <Box
                 key={item.ID || item.Message?.substring(0, 40) || `misconfig-${idx}`}
                 sx={{
-                  p: '10px 12px',
+                  p: `10px ${ds.space[3]}`,
                   backgroundColor: idx % 2 === 0 ? ds.background[100] : ds.gray[100],
                   borderBottom: idx < misconfigurations.length - 1 ? `1px solid ${ds.gray[200]}` : 'none',
                 }}

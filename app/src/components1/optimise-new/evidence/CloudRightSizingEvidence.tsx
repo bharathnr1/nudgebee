@@ -113,14 +113,14 @@ const CloudRightSizingEvidence = ({ recommendation, ruleName, estimatedSavings, 
           }}
         >
           <Box sx={{ textAlign: 'center' }}>
-            <Typography sx={{ fontSize: ds.text.caption, color: ds.gray[500], mb: '2px' }}>Current</Typography>
+            <Typography sx={{ fontSize: ds.text.caption, color: ds.gray[500], mb: ds.space[0] }}>Current</Typography>
             <Label size='sm' tone='critical'>
               {currentInstance}
             </Label>
           </Box>
           <ArrowForwardIcon sx={{ fontSize: '18px', color: ds.blue[700] }} />
           <Box sx={{ textAlign: 'center' }}>
-            <Typography sx={{ fontSize: ds.text.caption, color: ds.gray[500], mb: '2px' }}>Recommended</Typography>
+            <Typography sx={{ fontSize: ds.text.caption, color: ds.gray[500], mb: ds.space[0] }}>Recommended</Typography>
             <Label size='sm' tone='success'>
               {recommendedInstance}
             </Label>

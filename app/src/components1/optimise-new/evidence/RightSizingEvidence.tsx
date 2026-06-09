@@ -214,7 +214,7 @@ const RightSizingEvidence = ({ recommendation, estimatedSavings, fullRecommendat
 
       {/* CPU/Memory Trend Charts */}
       {trendLoading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: '16px' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: ds.space[4] }}>
           <CircularProgress size={24} />
         </Box>
       )}
@@ -307,9 +307,15 @@ const RightSizingEvidence = ({ recommendation, estimatedSavings, fullRecommendat
         <Table size='small'>
           <TableHead>
             <TableRow sx={{ backgroundColor: ds.blue[100] }}>
-              <TableCell sx={{ fontWeight: ds.weight.semibold, color: ds.gray[700], fontSize: '11px !important' }}>Container</TableCell>
-              <TableCell sx={{ fontWeight: ds.weight.semibold, color: ds.gray[700], fontSize: '11px !important' }}>CPU Request (Core)</TableCell>
-              <TableCell sx={{ fontWeight: ds.weight.semibold, color: ds.gray[700], fontSize: '11px !important' }}>Memory Request (MB)</TableCell>
+              <TableCell sx={{ fontWeight: ds.weight.semibold, color: ds.gray[700], fontSize: 'var(--ds-text-caption) !important' }}>
+                Container
+              </TableCell>
+              <TableCell sx={{ fontWeight: ds.weight.semibold, color: ds.gray[700], fontSize: 'var(--ds-text-caption) !important' }}>
+                CPU Request (Core)
+              </TableCell>
+              <TableCell sx={{ fontWeight: ds.weight.semibold, color: ds.gray[700], fontSize: 'var(--ds-text-caption) !important' }}>
+                Memory Request (MB)
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -355,9 +361,15 @@ const RightSizingEvidence = ({ recommendation, estimatedSavings, fullRecommendat
             <Table size='small'>
               <TableHead>
                 <TableRow sx={{ backgroundColor: ds.blue[100] }}>
-                  <TableCell sx={{ fontWeight: ds.weight.semibold, color: ds.gray[700], fontSize: '11px !important' }}>Container</TableCell>
-                  <TableCell sx={{ fontWeight: ds.weight.semibold, color: ds.gray[700], fontSize: '11px !important' }}>CPU Limit (Core)</TableCell>
-                  <TableCell sx={{ fontWeight: ds.weight.semibold, color: ds.gray[700], fontSize: '11px !important' }}>Memory Limit (MB)</TableCell>
+                  <TableCell sx={{ fontWeight: ds.weight.semibold, color: ds.gray[700], fontSize: 'var(--ds-text-caption) !important' }}>
+                    Container
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: ds.weight.semibold, color: ds.gray[700], fontSize: 'var(--ds-text-caption) !important' }}>
+                    CPU Limit (Core)
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: ds.weight.semibold, color: ds.gray[700], fontSize: 'var(--ds-text-caption) !important' }}>
+                    Memory Limit (MB)
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -455,7 +467,7 @@ const RightSizingEvidence = ({ recommendation, estimatedSavings, fullRecommendat
                 <Typography sx={{ fontSize: ds.text.caption, fontWeight: ds.weight.semibold, color: ds.gray[500], mb: '6px', fontStyle: 'italic' }}>
                   {containerName}
                 </Typography>
-                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: ds.space[1] }}>
                   {cpu?.add_info?.cpu_percentile_99 != null && (
                     <PercentileItem label='CPU P99' value={`${Number(cpu.add_info.cpu_percentile_99).toFixed(4)} cores`} />
                   )}
@@ -529,7 +541,7 @@ const UtilizationBar = ({
           {fmt(usage)} / {fmt(allocated)} {unit} ({pct.toFixed(0)}%)
         </Typography>
       </Box>
-      <Box sx={{ position: 'relative', height: '16px', backgroundColor: ds.gray[200], borderRadius: ds.radius.sm, overflow: 'visible' }}>
+      <Box sx={{ position: 'relative', height: ds.space[4], backgroundColor: ds.gray[200], borderRadius: ds.radius.sm, overflow: 'visible' }}>
         {/* Usage fill */}
         <Box
           sx={{
@@ -550,8 +562,8 @@ const UtilizationBar = ({
               position: 'absolute',
               left: `${recPct}%`,
               top: '-2px',
-              height: '20px',
-              width: '2px',
+              height: ds.space.mul(1, 5),
+              width: ds.space[0],
               backgroundColor: ds.green[600],
               borderRadius: '1px',
               zIndex: 1,
@@ -560,7 +572,7 @@ const UtilizationBar = ({
           />
         )}
       </Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: '2px' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: ds.space[0] }}>
         <Typography sx={{ fontSize: '9px', color: ds.gray[500] }}>0</Typography>
         {recPct != null && (
           <Typography sx={{ fontSize: '9px', color: ds.green[600], fontWeight: ds.weight.semibold }}>

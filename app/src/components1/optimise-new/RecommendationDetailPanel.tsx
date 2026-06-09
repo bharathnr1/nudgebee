@@ -133,7 +133,7 @@ const InlineResolutionHistory = ({ recommendationId }: { recommendationId: strin
                       href={r.type_reference_id}
                       target='_blank'
                       rel='noopener'
-                      sx={{ fontSize: ds.text.caption, color: ds.blue[600], display: 'flex', alignItems: 'center', gap: '2px' }}
+                      sx={{ fontSize: ds.text.caption, color: ds.blue[600], display: 'flex', alignItems: 'center', gap: ds.space[0] }}
                     >
                       <LinkIcon sx={{ fontSize: '12px' }} />
                       Link
@@ -214,7 +214,9 @@ const RecommendationDetailPanel = ({
       sx={{
         '& .MuiDrawer-paper': {
           width: { xs: '100%', md: '720px' },
-          boxShadow: '0px 4px 20px -1px rgba(229, 229, 229, 0.4), -4px 0 20px rgba(0,0,0,0.08)',
+          boxShadow: `0px ${ds.space[1]} 20px -1px color-mix(in srgb, ${ds.gray[300]} 40%, transparent), ${ds.space.mul(1, -1)} 0px 20px ${
+            ds.gray.alpha[200]
+          }`,
           borderLeft: `1px solid ${ds.gray[200]}`,
         },
       }}
@@ -223,7 +225,7 @@ const RecommendationDetailPanel = ({
         {/* Header */}
         <Box
           sx={{
-            p: '16px 20px',
+            p: `${ds.space[4]} 20px`,
             borderBottom: `1px solid ${ds.gray[200]}`,
             display: 'flex',
             alignItems: 'flex-start',
@@ -253,7 +255,7 @@ const RecommendationDetailPanel = ({
             >
               {resourceName}
             </Typography>
-            <Typography sx={{ fontSize: ds.text.small, color: ds.gray[500], mt: '2px' }}>
+            <Typography sx={{ fontSize: ds.text.small, color: ds.gray[500], mt: ds.space[0] }}>
               {resourceType}
               {namespace ? ` · ${namespace}` : ''}
               {accountName ? ` · ${accountName}` : ''}
@@ -337,7 +339,7 @@ const RecommendationDetailPanel = ({
         </Box>
 
         <Box sx={{ flex: 1, overflow: 'auto', display: activeTab === 2 ? 'block' : 'none' }}>
-          <Box sx={{ p: '16px 20px' }}>
+          <Box sx={{ p: `${ds.space[4]} 20px` }}>
             <Typography sx={{ fontSize: ds.text.body, fontWeight: ds.weight.semibold, color: ds.gray[700], mb: ds.space[3] }}>Timeline</Typography>
 
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: '0px' }}>
@@ -345,8 +347,8 @@ const RecommendationDetailPanel = ({
               <Box sx={{ display: 'flex', gap: ds.space[3], alignItems: 'flex-start' }}>
                 <Box
                   sx={{
-                    width: '8px',
-                    height: '8px',
+                    width: ds.space[2],
+                    height: ds.space[2],
                     borderRadius: '50%',
                     backgroundColor: ds.green[600],
                     mt: '5px',
@@ -366,8 +368,8 @@ const RecommendationDetailPanel = ({
                 <Box sx={{ display: 'flex', gap: ds.space[3], alignItems: 'flex-start' }}>
                   <Box
                     sx={{
-                      width: '8px',
-                      height: '8px',
+                      width: ds.space[2],
+                      height: ds.space[2],
                       borderRadius: '50%',
                       backgroundColor: ds.blue[600],
                       mt: '5px',
@@ -388,8 +390,8 @@ const RecommendationDetailPanel = ({
                 <Box sx={{ display: 'flex', gap: ds.space[3], alignItems: 'flex-start' }}>
                   <Box
                     sx={{
-                      width: '8px',
-                      height: '8px',
+                      width: ds.space[2],
+                      height: ds.space[2],
                       borderRadius: '50%',
                       backgroundColor: ds.amber[500],
                       mt: '5px',

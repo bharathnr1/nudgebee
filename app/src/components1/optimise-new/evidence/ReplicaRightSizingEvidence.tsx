@@ -56,13 +56,13 @@ const ReplicaRightSizingEvidence = ({ recommendation, estimatedSavings }: Replic
           }}
         >
           <Box sx={{ textAlign: 'center' }}>
-            <Typography sx={{ fontSize: ds.text.caption, color: ds.gray[500], mb: '2px' }}>Current</Typography>
+            <Typography sx={{ fontSize: ds.text.caption, color: ds.gray[500], mb: ds.space[0] }}>Current</Typography>
             <Typography sx={{ fontSize: '24px', fontWeight: ds.weight.semibold, color: ds.red[600] }}>{allocatedReplica}</Typography>
             <Typography sx={{ fontSize: ds.text.caption, color: ds.gray[500] }}>replicas</Typography>
           </Box>
           <ArrowForwardIcon sx={{ fontSize: '20px', color: ds.blue[700] }} />
           <Box sx={{ textAlign: 'center' }}>
-            <Typography sx={{ fontSize: ds.text.caption, color: ds.gray[500], mb: '2px' }}>Recommended</Typography>
+            <Typography sx={{ fontSize: ds.text.caption, color: ds.gray[500], mb: ds.space[0] }}>Recommended</Typography>
             <Typography sx={{ fontSize: '24px', fontWeight: ds.weight.semibold, color: ds.green[600] }}>{recommendedReplica}</Typography>
             <Typography sx={{ fontSize: ds.text.caption, color: ds.gray[500] }}>replicas</Typography>
           </Box>
@@ -102,7 +102,7 @@ const ReplicaRightSizingEvidence = ({ recommendation, estimatedSavings }: Replic
               overflow: 'auto',
             }}
           >
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px', gap: '2px' }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px', gap: ds.space[0] }}>
               <Typography sx={{ fontSize: ds.text.caption, fontWeight: ds.weight.semibold, color: ds.gray[500] }}>Time</Typography>
               <Typography sx={{ fontSize: ds.text.caption, fontWeight: ds.weight.semibold, color: ds.gray[500], textAlign: 'center' }}>
                 Allocated
@@ -166,7 +166,7 @@ const MetricBox = ({ label, value, color }: { label: string; value: string; colo
       borderLeft: `3px solid ${color}`,
     }}
   >
-    <Typography sx={{ fontSize: ds.text.caption, color: ds.gray[500], mb: '2px' }}>{label}</Typography>
+    <Typography sx={{ fontSize: ds.text.caption, color: ds.gray[500], mb: ds.space[0] }}>{label}</Typography>
     <Typography sx={{ fontSize: ds.text.body, fontWeight: ds.weight.semibold, color: ds.gray[700], fontFamily: 'monospace' }}>{value}</Typography>
   </Box>
 );

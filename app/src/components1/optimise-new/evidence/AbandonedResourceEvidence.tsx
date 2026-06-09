@@ -152,7 +152,7 @@ const AbandonedResourceEvidence = ({ recommendation, estimatedSavings, cloudReso
                   borderLeft: `3px solid ${ds.blue[500]}`,
                 }}
               >
-                <Typography sx={{ fontSize: ds.text.caption, color: ds.gray[500], mb: '2px' }}>CPU</Typography>
+                <Typography sx={{ fontSize: ds.text.caption, color: ds.gray[500], mb: ds.space[0] }}>CPU</Typography>
                 <Typography sx={{ fontSize: ds.text.body, fontWeight: ds.weight.semibold, color: ds.gray[700], fontFamily: 'monospace' }}>
                   {Number(cpu).toFixed(3)} cores
                 </Typography>
@@ -168,7 +168,7 @@ const AbandonedResourceEvidence = ({ recommendation, estimatedSavings, cloudReso
                   borderLeft: `3px solid ${ds.purple[500]}`,
                 }}
               >
-                <Typography sx={{ fontSize: ds.text.caption, color: ds.gray[500], mb: '2px' }}>Memory</Typography>
+                <Typography sx={{ fontSize: ds.text.caption, color: ds.gray[500], mb: ds.space[0] }}>Memory</Typography>
                 <Typography sx={{ fontSize: ds.text.body, fontWeight: ds.weight.semibold, color: ds.gray[700], fontFamily: 'monospace' }}>
                   {Number(memory).toFixed(0)} Mi
                 </Typography>
