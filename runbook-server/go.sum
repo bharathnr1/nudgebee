@@ -47,8 +47,8 @@ github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkp
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
 github.com/eko/gocache/lib/v4 v4.2.3 h1:s78TFqEGAH3SbzP4N40D755JYT/aaGFKEPrsUtC1chU=
 github.com/eko/gocache/lib/v4 v4.2.3/go.mod h1:Zus8mwmaPu1VYOzfomb+Dvx2wV7fT5jDRbHYtQM6MEY=
-github.com/eko/gocache/store/bigcache/v4 v4.2.3 h1:EAYtLX7srR9hkr9AP+JVLVymUYXihNfsgNusPfH5SoA=
-github.com/eko/gocache/store/bigcache/v4 v4.2.3/go.mod h1:ty85W3DT2S5ZO3VG30UkwMQ1FmH8p6O0Y6FrQz7alUo=
+github.com/eko/gocache/store/bigcache/v4 v4.2.4 h1:Ak2qZYh7ioRoSts6xUObdnbNhKIZQxrVGO1kb21U8Ak=
+github.com/eko/gocache/store/bigcache/v4 v4.2.4/go.mod h1:ty85W3DT2S5ZO3VG30UkwMQ1FmH8p6O0Y6FrQz7alUo=
 github.com/eko/gocache/store/redis/v4 v4.2.6 h1:btD3TIFAgujZAsvTEBTaDfNTSAf+GO32il0HQ5MIqCI=
 github.com/eko/gocache/store/redis/v4 v4.2.6/go.mod h1:0PMef3sy4AonKqrxdnUsIKDAMtqNyJI4e6asTo00XrE=
 github.com/emicklei/go-restful/v3 v3.13.0 h1:C4Bl2xDndpU6nJ4bc1jXd+uTmYPVUwkD6bFY/oTyCes=
