@@ -25,12 +25,15 @@ os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
 RAG_SERVER_PORT = int(os.environ.get("RAGSERVER_PORT", 9999))
 # Per-service bearer token gating every non-health route. Loaded at
-# module import; an empty value means RAG_SERVER_TOKEN was not set in
-# the environment, in which case the middleware refuses every request
-# with a 503 (fail-closed). The header on the wire is X-ACTION-TOKEN
-# (same convention as every other backend), but the *value* is
-# rag-server-specific so a leak of one backend's token doesn't open
-# the others. Health probes are exempt so kubelet liveness still works.
+# module import. Enforcement is OPTIONAL: when RAG_SERVER_TOKEN is set,
+# the middleware requires a matching X-ACTION-TOKEN header on every
+# non-health route; when it is empty (not configured), auth is skipped
+# and requests pass through. This mirrors the llm-server caller, which
+# only attaches the header when its own token is set. The header on the
+# wire is X-ACTION-TOKEN (same convention as every other backend), but
+# the *value* is rag-server-specific so a leak of one backend's token
+# doesn't open the others. Health probes are exempt so kubelet liveness
+# still works.
 RAG_SERVER_TOKEN = os.environ.get("RAG_SERVER_TOKEN", "")
 RAG_AUTH_EXEMPT_PATHS = {"/health"}
 
@@ -157,11 +160,10 @@ def create_app() -> FastAPI:
         path = raw_path.rstrip("/") if raw_path != "/" else "/"
         if path in RAG_AUTH_EXEMPT_PATHS:
             return await call_next(request)
+        # Optional enforcement: with no token configured, auth is disabled
+        # and the request passes through unauthenticated.
         if not RAG_SERVER_TOKEN:
-            return JSONResponse(
-                status_code=503,
-                content={"error": "RAG_SERVER_TOKEN is not configured; refusing requests"},
-            )
+            return await call_next(request)
         provided = request.headers.get("X-ACTION-TOKEN", "")
         if not hmac.compare_digest(provided, RAG_SERVER_TOKEN):
             return JSONResponse(
