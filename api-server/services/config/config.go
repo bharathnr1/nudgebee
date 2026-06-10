@@ -150,6 +150,8 @@ type appConfig struct {
 
 	NBRetentionDaysK8sResources int `mapstructure:"nb_retention_days_k8s_resources"`
 
+	NBRetentionDaysRecommendationsArchive int `mapstructure:"nb_retention_days_recommendations_archive"`
+
 	KGEdgeStaleAfterDays           int    `mapstructure:"kg_edge_stale_after_days"`
 	NBRetentionDaysKGInactiveEdges int    `mapstructure:"nb_retention_days_kg_inactive_edges"`
 	KGBehavioralEdgeTypes          string `mapstructure:"kg_behavioral_edge_types"` // comma-separated; empty falls back to DefaultBehavioralEdgeTypes
@@ -336,6 +338,7 @@ func init() {
 	viper.SetDefault("nb_retention_days_events_critical", 90)
 	viper.SetDefault("nb_retention_days_cloud_account_usage_report", 90)
 	viper.SetDefault("nb_retention_days_k8s_resources", 30)
+	viper.SetDefault("nb_retention_days_recommendations_archive", 30)
 	viper.SetDefault("kg_edge_stale_after_days", 7)
 	viper.SetDefault("nb_retention_days_kg_inactive_edges", 14)
 	viper.SetDefault("kg_behavioral_edge_types", "") // empty → use DefaultBehavioralEdgeTypes
