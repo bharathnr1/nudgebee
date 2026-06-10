@@ -233,7 +233,7 @@ const TriggerNode = ({ id, data, isConnectable, selected, onTriggerRun, onAddFro
             : undefined
         }
         deleteButtonConfig={
-          data.executionStatus || data.isDeleted
+          !isEditorMode || data.executionStatus || data.isDeleted
             ? { hidden: true }
             : {
                 title: 'Delete trigger node',

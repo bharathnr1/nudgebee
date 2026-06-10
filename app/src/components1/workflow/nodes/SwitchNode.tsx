@@ -409,11 +409,15 @@ const SwitchNode = ({ id, data, isConnectable, selected, onAddFromHandle }: any)
             })}
           </>
         }
-        menuItems={[
-          { label: 'Rename', onClick: handleEditId },
-          { label: 'Duplicate', onClick: handleDuplicateTask },
-        ]}
-        deleteButtonConfig={{ title: 'Delete switch node' }}
+        menuItems={
+          isEditorMode
+            ? [
+                { label: 'Rename', onClick: handleEditId },
+                { label: 'Duplicate', onClick: handleDuplicateTask },
+              ]
+            : []
+        }
+        deleteButtonConfig={isEditorMode ? { title: 'Delete switch node' } : { hidden: true }}
       />
 
       {/* Delete Confirmation Modal */}

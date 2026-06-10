@@ -2476,13 +2476,12 @@ const Investigate = () => {
                           {/* Run Automation */}
                           {(() => {
                             const automationAccountId = row?.cloud_account_id || router.query.accountId;
-                            const askAiCard = matchedOptions.find((option) => option?.id === 'AskAiCard');
-                            if (!row?.id || !askAiCard || askAiCard.errorMessage) return null;
-                            if (!hasWriteAccess(automationAccountId)) return null;
+                            if (!row?.id) return null;
                             return (
                               <RunAutomationMenu
                                 accountId={automationAccountId}
                                 triggeredExecutions={triggeredExecutions}
+                                canRun={hasWriteAccess(automationAccountId)}
                                 onCreateAutomation={() => setShowTemplatesModal(true)}
                               />
                             );

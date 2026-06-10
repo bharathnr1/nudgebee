@@ -12,7 +12,7 @@ import { parseHttpResponseBodyMessage } from 'src/utils/common';
 import { colors, ds } from 'src/utils/colors';
 import Datetime from '@components1/common/format/Datetime';
 import TriggerWorkflowModal from './TriggerWorkflowModal';
-import { getDefaultTriggerInputs, getPrimaryTriggerType, getWorkflowInputSchema, hasManualTrigger } from '../utils/workflowTriggerHelpers';
+import { getDefaultTriggerInputs, getPrimaryTriggerType, getWorkflowInputSchema } from '../utils/workflowTriggerHelpers';
 
 export interface TriggeredExecution {
   workflow_id: string;
@@ -27,6 +27,10 @@ interface RunAutomationMenuProps {
   accountId: string;
   disabled?: boolean;
   triggeredExecutions?: TriggeredExecution[];
+  // Gates the run/create/configure actions. When false the menu still shows the
+  // read-only "Triggered for this event" list, but offers no way to run, create,
+  // or configure automations. Defaults to false so the gate fails closed.
+  canRun?: boolean;
   onCreateAutomation?: () => void;
 }
 
@@ -146,7 +150,13 @@ const TriggeredExecutionRow: React.FC<{ ex: TriggeredExecution }> = ({ ex }) => 
   );
 };
 
-const RunAutomationMenu: React.FC<RunAutomationMenuProps> = ({ accountId, disabled = false, triggeredExecutions = [], onCreateAutomation }) => {
+const RunAutomationMenu: React.FC<RunAutomationMenuProps> = ({
+  accountId,
+  disabled = false,
+  triggeredExecutions = [],
+  canRun = false,
+  onCreateAutomation,
+}) => {
   const router = useRouter();
   const [workflows, setWorkflows] = useState<WorkflowListItem[]>([]);
   const [loadState, setLoadState] = useState<LoadState>('idle');
@@ -169,7 +179,7 @@ const RunAutomationMenu: React.FC<RunAutomationMenuProps> = ({ accountId, disabl
     setLoadState('loading');
     setErrorMessage('');
     try {
-      const response: any = await apiWorkflow.listWorkflows(requestAccountId, 'ACTIVE', undefined, 'manual', 100);
+      const response: any = await apiWorkflow.listWorkflows(requestAccountId);
       // Drop the response if the active accountId changed while the request was in flight.
       if (currentAccountIdRef.current !== requestAccountId) return;
       const apiError = parseHttpResponseBodyMessage(response);
@@ -179,11 +189,7 @@ const RunAutomationMenu: React.FC<RunAutomationMenuProps> = ({ accountId, disabl
         return;
       }
       const list: WorkflowListItem[] = response?.data?.workflow_list?.workflows || [];
-      // Defense-in-depth: ensure each entry actually has a manual trigger,
-      // in case the backend filter ever loosens or a workflow declares both
-      // manual + event triggers and we only want the ones runnable by hand.
-      const manualOnly = list.filter((w) => hasManualTrigger(w));
-      setWorkflows(manualOnly);
+      setWorkflows(list);
       setLoadState('loaded');
     } catch (err) {
       if (currentAccountIdRef.current !== requestAccountId) return;
@@ -199,11 +205,13 @@ const RunAutomationMenu: React.FC<RunAutomationMenuProps> = ({ accountId, disabl
   // value in a ref so we don't repeat the call for an unchanged accountId.
   const lastFetchedAccountIdRef = useRef<string | null>(null);
   useEffect(() => {
+    // View-only users never see the run list, so skip the fetch entirely.
+    if (!canRun) return;
     if (!accountId) return;
     if (lastFetchedAccountIdRef.current === accountId) return;
     lastFetchedAccountIdRef.current = accountId;
     fetchWorkflows();
-  }, [accountId, fetchWorkflows]);
+  }, [canRun, accountId, fetchWorkflows]);
 
   const handleSelect = (workflow: WorkflowListItem) => {
     setSelectedWorkflow(workflow);
@@ -273,12 +281,33 @@ const RunAutomationMenu: React.FC<RunAutomationMenuProps> = ({ accountId, disabl
         id: `triggered-execution-${ex.id}`,
         searchText: ex.workflow_name || ex.workflow_id,
       })),
-      { type: 'separator' as const },
     ];
   }, [validTriggered, goToExecution]);
 
   const items: DropdownMenuItem[] = useMemo(() => {
-    const runHeader: DropdownMenuItem[] = triggeredItems.length > 0 ? [{ type: 'section' as const, label: 'Run an automation' }] : [];
+    // View-only users (no write access) see just the triggered list — no run,
+    // create, or configure actions.
+    if (!canRun) {
+      if (triggeredItems.length === 0) {
+        return [
+          {
+            label: (
+              <Typography sx={{ fontSize: 'var(--ds-text-body)', color: colors.text.secondaryDark }}>
+                No automations triggered for this event
+              </Typography>
+            ),
+            disabled: true,
+            onSelect: () => {},
+          },
+        ];
+      }
+      return triggeredItems;
+    }
+    // A separator divides the triggered list from the run section when both show.
+    const runHeader: DropdownMenuItem[] =
+      triggeredItems.length > 0
+        ? [{ type: 'separator' as const }, { type: 'section' as const, label: 'Run an automation' }]
+        : [{ type: 'section' as const, label: 'Run an automation' }];
     if (loadState === 'loading') {
       return [
         ...triggeredItems,
@@ -340,25 +369,26 @@ const RunAutomationMenu: React.FC<RunAutomationMenuProps> = ({ accountId, disabl
     // recomputing items on each change of selected workflow would force the
     // menu to remount and close.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadState, workflows, errorMessage, triggeredItems, goToWorkflowsPage]);
+  }, [canRun, loadState, workflows, errorMessage, triggeredItems, goToWorkflowsPage]);
 
-  const headerActions = onCreateAutomation ? (
-    <Button
-      tone='primary'
-      size='sm'
-      composition='icon+text'
-      icon={<AddIcon sx={{ fontSize: 16 }} />}
-      aria-label='Create automation'
-      tooltip='Create automation'
-      data-testid='run-automation-create'
-      onClick={(e) => {
-        e.stopPropagation();
-        onCreateAutomation();
-      }}
-    >
-      Create
-    </Button>
-  ) : undefined;
+  const headerActions =
+    canRun && onCreateAutomation ? (
+      <Button
+        tone='primary'
+        size='sm'
+        composition='icon+text'
+        icon={<AddIcon sx={{ fontSize: 16 }} />}
+        aria-label='Create automation'
+        tooltip='Create automation'
+        data-testid='run-automation-create'
+        onClick={(e) => {
+          e.stopPropagation();
+          onCreateAutomation();
+        }}
+      >
+        Create
+      </Button>
+    ) : undefined;
 
   return (
     <>

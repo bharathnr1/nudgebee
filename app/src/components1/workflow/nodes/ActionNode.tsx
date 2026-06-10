@@ -689,7 +689,7 @@ const ActionNode = ({ id, data, isConnectable, selected, onTestTask, accountId, 
             : undefined
         }
         menuItems={
-          data.isDeleted
+          !isEditorMode || data.isDeleted
             ? []
             : [
                 {
@@ -714,7 +714,7 @@ const ActionNode = ({ id, data, isConnectable, selected, onTestTask, accountId, 
               ]
         }
         deleteButtonConfig={
-          data.isDeleted
+          !isEditorMode || data.isDeleted
             ? { hidden: true }
             : {
                 title: 'Delete action node',
