@@ -2647,7 +2647,9 @@ const Investigate = () => {
                           {matchedOptions
                             .filter((option) => option?.id === 'AskAiCard')
                             .map((option) => (
-                              <AIOrRcaCard key={`ai-card-${option.id}`} option={option} noPadding />
+                              // refreshRenderId is part of the key so Refresh Investigation (which bumps it)
+                              // remounts the memoized card and restarts its polling useEffect.
+                              <AIOrRcaCard key={`ai-card-${option.id}-${option?.refreshRenderId || 0}`} option={option} noPadding />
                             ))}
 
                           {isK8s && !currentInvestigation?.text && matchedOptions.length > 0 && (

@@ -33,6 +33,7 @@ class AskAiCard {
     this.onDataUpdate = null;
     this.errorMessage = '';
     this.refreshRenderId = 0;
+    this.isRefreshing = false;
   }
 
   // Method to set data update callback
@@ -157,18 +158,32 @@ class AskAiCard {
   };
 
   refreshInvestigation = async () => {
-    this.aiData = { ...this.aiData, status: 'in_progress' };
-    this.showCardInsights();
-    if (this.onDataUpdate && typeof this.onDataUpdate === 'function') {
-      this.onDataUpdate(this);
-    }
+    // Flag a regenerate in flight. The backend keeps the previous summary text
+    // while the new run computes (UpsertEventAnalysisInProgress blanks analysis
+    // but not summary), so without this flag the refresh is visually invisible —
+    // the card keeps showing the old, completed-looking investigation. The
+    // render uses it to show a "Regenerating…" banner until the new run lands.
+    this.isRefreshing = true;
     try {
-      this.aiData = await apiKubernetes.generateAiRecommendation(this.event.cloud_account_id, this.event.id, 'pod_log_analysis', true);
+      // Kick off a fresh investigation. The server marks every analysis type
+      // in_progress and returns the record (status in_progress, but with the
+      // previous run's content still attached).
+      const res = await apiKubernetes.generateAiRecommendation(this.event.cloud_account_id, this.event.id, 'pod_log_analysis', true);
+      // Force status in_progress locally so the remounted card's poll useEffect
+      // skips its `status === 'completed'` early-return and sets up the 5s poll.
+      this.aiData = res && typeof res === 'object' ? { ...res, status: 'in_progress' } : { ...(this.aiData || {}), status: 'in_progress' };
+      this.errorMessage = '';
+      this.resolveButton = false;
       this.showCardInsights();
+      // Bump refreshRenderId so the keyed AskAiCard (key includes refreshRenderId)
+      // remounts: localAiData re-initialises from this in_progress aiData and the
+      // poll loop restarts, polling to completion.
+      this.refreshRenderId = (this.refreshRenderId || 0) + 1;
       if (this.onDataUpdate && typeof this.onDataUpdate === 'function') {
         this.onDataUpdate(this);
       }
     } catch (e) {
+      this.isRefreshing = false;
       console.error('Error refreshing AI recommendation:', e);
     }
   };
@@ -389,6 +404,7 @@ class AskAiCard {
             }
             const terminalStatuses = ['completed', 'failed', 'killed'];
             if (terminalStatuses.includes(res?.status?.toLowerCase())) {
+              cardInstance.isRefreshing = false;
               cardInstance.showCardInsights();
               if (cardInstance.onDataUpdate && typeof cardInstance.onDataUpdate === 'function') {
                 cardInstance.onDataUpdate(cardInstance);
@@ -531,6 +547,18 @@ class AskAiCard {
 
       let { analysis, summary, investigation, detailed_response, source_updates, task_statuses, code_analysis_enabled } = localAiData || {};
 
+      // While a Refresh Investigation run is in flight, ignore the previous run's
+      // retained content (the backend keeps the old summary/investigation text
+      // until the new run lands) so every section renders the same in-progress
+      // loader as a first-time investigation instead of a stale, completed result.
+      const isRegenerating = cardInstance.isRefreshing && localAiData?.status?.toLowerCase() === 'in_progress';
+      if (isRegenerating) {
+        analysis = '';
+        summary = '';
+        investigation = '';
+        detailed_response = '';
+      }
+
       const parsedAnalysis = typeof analysis === 'string' ? safeJSONParse(analysis) : null;
       if (parsedAnalysis) {
         // Only use the inner 'analysis' field — don't fall back to 'summary'
@@ -575,7 +603,7 @@ class AskAiCard {
             content: investigation,
           });
         }
-        if (task_statuses.log_analysis !== undefined || analysis) {
+        if (task_statuses.log_analysis !== undefined && analysis) {
           sections.push({
             id: 'log_analysis',
             label: 'Log Analysis',
@@ -708,7 +736,7 @@ class AskAiCard {
       return (
         <div style={{ width: '100%' }}>
           {/* Inline follow-up questions with options or text input */}
-          {waitingFollowUpItems.length > 0 && (
+          {!isRegenerating && waitingFollowUpItems.length > 0 && (
             <Box sx={{ mb: 'var(--ds-space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--ds-space-3)' }}>
               {waitingFollowUpItems.map((item, idx) => {
                 const hasOptions = item.followupOptions && item.followupOptions.length > 0;
@@ -930,10 +958,10 @@ class AskAiCard {
             ))}
           </Box>
 
-          {renderExtras()}
+          {!isRegenerating && renderExtras()}
 
           {/* Follow-up conversation messages */}
-          {followUpMessages.length > 0 && (
+          {!isRegenerating && followUpMessages.length > 0 && (
             <Box sx={{ mt: 'var(--ds-space-5)' }}>
               {followUpMessages.map((msg, idx) =>
                 msg.type === 'question' ? (
