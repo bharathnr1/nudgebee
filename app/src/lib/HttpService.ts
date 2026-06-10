@@ -27,6 +27,12 @@ type ServerGateway = (opts: {
   variables: Record<string, unknown> | undefined;
   traceparent: string;
   requestId: string;
+  // Trusted server-side override for the bypass's effective tenant context.
+  // Honored only on the in-process server bypass path (never HTTP). Callers
+  // MUST source this from a trusted server-only value (e.g. license.tenantId)
+  // — NEVER from a client-supplied header or request-derived field, since
+  // the bypass sidesteps the cookie-JWT tenant binding.
+  tenantOverride?: string;
 }) => Promise<{ handled: true; status: number; body: any } | { handled: false; reason: string }>;
 
 export function getRelayServerEndpoint() {
@@ -78,7 +84,12 @@ export const queryGraphQL = async (
   operationName: string,
   variables?: any,
   headers?: Record<string, string>,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  // Typed, server-only override for the bypass's effective tenant. Honored
+  // only on the in-process server gateway path; ignored on the HTTP path
+  // (cookie-JWT remains authoritative there). Source from a trusted
+  // server-only value — see ServerGateway.tenantOverride for the rule.
+  serverTenantOverride?: string
 ) => {
   try {
     const updatedVariables: any = {};
@@ -111,6 +122,7 @@ export const queryGraphQL = async (
         variables: updatedVariables,
         traceparent: traceHdrs.traceparent,
         requestId: traceHdrs['X-Request-ID'],
+        tenantOverride: serverTenantOverride,
       });
       if (result.handled) {
         if (result.body?.errors?.length) {

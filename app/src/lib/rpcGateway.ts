@@ -458,6 +458,10 @@ export async function tryBypassGraphQL(opts: {
   clientAuthorization?: string;
   traceparent: string;
   requestId: string;
+  // See bypassGraphQLAsServer.tenantOverride. Only the server bypass
+  // path threads this; the HTTP path leaves it undefined and relies on
+  // the cookie JWT's tenant binding.
+  tenantOverride?: string;
 }): Promise<GraphQLBypassResult> {
   const parsed = parseOperation(opts.query, opts.variables);
   if (!parsed.ok) return { handled: false, reason: parsed.reason };
@@ -470,6 +474,13 @@ export async function tryBypassGraphQL(opts: {
   }
 
   const sessionVariables = buildSessionVariables(opts.jwt);
+  // Apply tenantOverride before deriving the effective tenantId. This must
+  // happen on `sessionVariables.tenant_id` (not just the local var below)
+  // so any downstream code that re-reads sessionVariables sees the override
+  // too. Empty strings are ignored — the override is opt-in.
+  if (opts.tenantOverride) {
+    sessionVariables.tenant_id = opts.tenantOverride;
+  }
   const tenantId = sessionVariables.tenant_id;
   const userId = sessionVariables.user_id;
 
@@ -562,6 +573,17 @@ export function bypassGraphQLAsServer(opts: {
   variables: Record<string, unknown> | undefined;
   traceparent: string;
   requestId: string;
+  // Server-only trusted override for the effective tenant. When set and
+  // non-empty, the in-process upstream sees `tenant_id=<override>` instead
+  // of the SERVER_ADMIN_JWT's empty tenant. This makes the actions.go
+  // bridge build a `NewSecurityContextForTenantAdmin(tenantId)` context
+  // (roles: account_admin + tenant_admin) instead of a roles-empty
+  // super-admin one, so on-behalf-of-tenant writes (e.g. bootstrap
+  // `tenant_attribute_upsert`) authorize correctly AND land with a real
+  // tenant_id (the column is uuid NOT NULL + FK to tenant). Callers MUST
+  // source this from a trusted server-only value (license.tenantId, etc.)
+  // — never from a client-supplied header.
+  tenantOverride?: string;
 }): Promise<GraphQLBypassResult> {
   return tryBypassGraphQL({
     query: opts.query,
@@ -569,6 +591,7 @@ export function bypassGraphQLAsServer(opts: {
     jwt: SERVER_ADMIN_JWT,
     traceparent: opts.traceparent,
     requestId: opts.requestId,
+    tenantOverride: opts.tenantOverride,
   });
 }
 

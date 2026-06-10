@@ -850,7 +850,14 @@ export async function getCloudAccountAttr(accountId: string) {
   return response;
 }
 
-export async function upsertTenantAttributes(data: any, headers?: Record<string, string>) {
+export async function upsertTenantAttributes(
+  data: any,
+  headers?: Record<string, string>,
+  // Server-only trusted tenant override. Plumbed into the bypass path so
+  // server-side callers (NextAuth bootstrap, etc.) can write on behalf of
+  // a specific tenant. See HttpService.queryGraphQL's serverTenantOverride.
+  serverTenantOverride?: string
+) {
   const UPSERT_TENANT_ATTRIBUTE_ACTION = `
   mutation TenantAttributeAction($data: [TenantAttributeRequest!]!) {
     tenant_attribute_upsert(object: $data) {
@@ -866,7 +873,9 @@ export async function upsertTenantAttributes(data: any, headers?: Record<string,
     {
       data: data,
     },
-    headers
+    headers,
+    undefined,
+    serverTenantOverride
   );
   return response;
 }

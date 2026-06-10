@@ -656,7 +656,17 @@ export async function ensureAllowedDomainsSet(email: string, tenantId?: string) 
   try {
     const { tenantId: existingDomainTenant } = await findTenantByDomain(domain);
     if (!existingDomainTenant) {
-      await upsertTenantAttributes([{ name: 'allowed_domains', value: JSON.stringify([domain]) }], { 'x-tenant-id': tenantId });
+      await upsertTenantAttributes(
+        [{ name: 'allowed_domains', value: JSON.stringify([domain]) }],
+        { 'x-tenant-id': tenantId },
+        // Server-side bootstrap: the bypass path's SERVER_ADMIN_JWT has no
+        // tenant binding, so without this trusted override the upstream
+        // builds a super-admin context (roles=[], tenantId="") that fails
+        // IsTenantAdmin() AND would write tenant_id="" into tenant_attrs
+        // (uuid NOT NULL + FK). The override flips the actions.go bridge
+        // to NewSecurityContextForTenantAdmin(tenantId).
+        tenantId
+      );
       await getTenantAttributes(true); // refresh cache
       console.log(`Set allowed_domains for tenant ${tenantId}: [${domain}]`);
     }
