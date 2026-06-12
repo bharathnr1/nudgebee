@@ -168,19 +168,6 @@ func matchesToolName(t toolcore.NBTool, names []string) bool {
 	return false
 }
 
-// GetWorkspaceInstructions returns standard instructions for agents running in the workspace environment
-func GetWorkspaceInstructions() []string {
-	return []string{
-		"**Full Shell Environment:** You are running in a full shell environment (Alpine Linux).",
-		"**Base Directory:** Your working directory is `/app`.",
-		"**User:** You are running as non-root user `appuser`.",
-		"**Available Tools:** You have access to standard Linux utilities including `grep`, `awk`, `sed`, `curl`, `jq`, `find`, `xargs`, `tar`, `unzip`.",
-		"**Capabilities:** You can use pipes (`|`), redirection (`>`, `>>`, `<`), command substitution (`$()`), and environment variables.",
-		"**Isolation:** This is an isolated workspace environment for this specific task.",
-		"**Cleanup:** Temporary files created in `/tmp` are generally safe but clean up large files if created.",
-	}
-}
-
 func IsInvestigationRequestTask(input string) bool {
 	lowerInput := strings.ToLower(strings.TrimSpace(input))
 
@@ -335,4 +322,14 @@ func reActPromptToolDescriptions(tools []toolcore.NBTool) string {
 		fmt.Fprintf(&sb, "Description: %s", tool.Description())
 	}
 	return sb.String()
+}
+
+// RenderToolDescriptions exposes reActPromptToolDescriptions for use
+// outside the agents/core package. The internal name is kept stable so
+// the 8 in-package call sites do not churn. The rendered string is what
+// every planner's `{{.tool_descriptions}}` template var receives, so
+// this is the bytewise integration point between Tool.Description() and
+// the system prompt the LLM actually sees.
+func RenderToolDescriptions(tools []toolcore.NBTool) string {
+	return reActPromptToolDescriptions(tools)
 }

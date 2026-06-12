@@ -102,10 +102,6 @@ func (r RemediationAgent) GetSystemPrompt(ctx *security.RequestContext, query co
 		"- Include rollback plan in every remediation plan",
 	}
 
-	if config.Config.LlmServerShellToolEnabled {
-		instructions = append(instructions, core.GetWorkspaceInstructions()...)
-	}
-
 	toolUsage := map[string][]string{
 		tools.ToolRemediationGenerate: {
 			"Generates comprehensive remediation plan with RCA (Root Cause Analysis)",
