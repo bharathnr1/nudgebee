@@ -2406,6 +2406,10 @@ func PostProcessEvent(ctx *security.RequestContext, newEvent map[string]any) {
 		newEvent["priority"] = string(priorityE)
 	}
 
+	// Register this event's aggregation_key in event_rules so it is selectable as
+	// a workflow-trigger Event Type. Guarded + idempotent (no-op once registered).
+	registerNativeEventTypeRule(ctx, newEvent)
+
 	// Triage must run before other processors so its classification
 	// (nb_status etc.) is visible in newEvent to downstream gates such as
 	// llm.ProcessEvent's suppressed-skip check. Map iteration order is
