@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -239,4 +240,100 @@ func TestKubectlReadsSecretFilesystemPath(t *testing.T) {
 			assert.Equal(t, tc.want, kubectlReadsSecretFilesystemPath(tc.command))
 		})
 	}
+}
+
+// TestKubectlErrorHint_Patterns pins the hint discriminator added for
+// issue #32240. Two patterns hit, anything else falls through to "".
+func TestKubectlErrorHint_Patterns(t *testing.T) {
+	cases := []struct {
+		name     string
+		rawError string
+		want     string // substring expected in hint; "" = no hint
+	}{
+		{
+			name:     "shim 500 wraps a 400 Bad Request",
+			rawError: `Error: Server returned 500: {"error":"status: 400 Bad Request","result":null}`,
+			want:     "rejected this kubectl command as malformed",
+		},
+		{
+			name:     "shim 500 wraps the legacy findings-not-found parser bail",
+			rawError: `Error: Server returned 500: {"error":"findings field not found or is nil from data","result":null}`,
+			want:     "response shape the parser didn't recognize",
+		},
+		{
+			name:     "plain 500 with neither known body — no hint",
+			rawError: `Error: Server returned 500: {"error":"some other thing","result":null}`,
+			want:     "",
+		},
+		{
+			name:     "successful 200 — no hint",
+			rawError: "",
+			want:     "",
+		},
+		{
+			name:     "kubectl resource-not-found stderr does NOT collide with the 400 pattern",
+			rawError: `Error from server (NotFound): pods "missing-pod": not found`,
+			want:     "",
+		},
+		{
+			name:     "case-insensitive match on shim wrapper",
+			rawError: `error: server returned 500: {"error":"status: 400 bad request","result":null}`,
+			want:     "rejected this kubectl command as malformed",
+		},
+		// Decoupling guard — PR #32243 Gemini review. The hint must fire
+		// whether the error reaches us shim-wrapped ("Server returned
+		// 500: ...") or directly from a Go parser (errors.New(...)). The
+		// raw error string is what reaches kubectlErrorHint; require only
+		// the underlying signal, not the wrapper.
+		{
+			name:     "direct findings-not-found error (no shim wrapper) — hint still fires",
+			rawError: "findings field not found or is nil from data",
+			want:     "response shape the parser didn't recognize",
+		},
+		{
+			name:     "direct 400-Bad-Request error (no shim wrapper) — hint still fires",
+			rawError: "kubectl post failed: status: 400 Bad Request",
+			want:     "rejected this kubectl command as malformed",
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := kubectlErrorHint(c.rawError)
+			if c.want == "" {
+				assert.Empty(t, got, "expected no hint, got: %s", got)
+				return
+			}
+			assert.Contains(t, got, c.want)
+		})
+	}
+}
+
+// TestWrapKubectlError_EnvelopeShape pins the JSON envelope shape on
+// patterns that hit + verifies pass-through on patterns that don't.
+func TestWrapKubectlError_EnvelopeShape(t *testing.T) {
+	t.Run("400 wrap: envelope contains both hint and original_error", func(t *testing.T) {
+		raw := `Error: Server returned 500: {"error":"status: 400 Bad Request","result":null}`
+		wrapped := wrapKubectlError(raw, "kubectl describe ds kube-proxy -n kube-system")
+		assert.Contains(t, wrapped, `"error_hint"`)
+		assert.Contains(t, wrapped, `"original_error"`)
+		assert.Contains(t, wrapped, "rejected this kubectl command as malformed")
+		// The raw error must round-trip verbatim — string-quoting handled
+		// by MarshalJson, so the JSON-encoded form of the raw error is
+		// what's expected in the envelope body.
+		var env map[string]string
+		err := json.Unmarshal([]byte(wrapped), &env)
+		assert.NoError(t, err)
+		assert.Equal(t, raw, env["original_error"])
+	})
+
+	t.Run("no pattern match: pass-through unchanged", func(t *testing.T) {
+		raw := "Error from server (NotFound): pods \"missing-pod\": not found"
+		wrapped := wrapKubectlError(raw, "kubectl get pod missing-pod")
+		assert.Equal(t, raw, wrapped)
+	})
+
+	t.Run("empty raw: pass-through empty", func(t *testing.T) {
+		wrapped := wrapKubectlError("", "kubectl get pods")
+		assert.Equal(t, "", wrapped)
+	})
 }

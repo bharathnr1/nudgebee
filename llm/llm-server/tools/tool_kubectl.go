@@ -558,14 +558,23 @@ func (m KubectlExecuteTool) Call(nbRequestContext core.NbToolContext, input core
 	response, err := ExecuteContainerJob(nbRequestContext, RelayJobKubectl, command, effectiveAccountId, map[string]any{}, false)
 	if err != nil {
 		nbRequestContext.Ctx.GetLogger().Error("k8s: unable to execute shell script", "error", err.Error(), "command", command)
-		responseData := ""
+		// ExecuteContainerJob returns (nil, err) on every failure path
+		// (relay.Execute error, getRelayCommandResponseData parser error,
+		// downstream unmarshal failure), so `response` is always nil here
+		// and the only thing that carries the actual signal — including
+		// the shim's "Error: Server returned NNN: ..." wrapper that the
+		// hint patterns are tuned for — is err.Error(). Use it as the
+		// raw input to wrapKubectlError. The `response` assertion below
+		// is defensive in case a future code path starts returning a
+		// non-nil response alongside an error.
+		rawError := err.Error()
 		if response != nil {
-			if responseData1, ok := response.(string); ok {
-				responseData = responseData1
+			if responseStr, ok := response.(string); ok && responseStr != "" {
+				rawError = responseStr
 			}
 		}
 		return core.NBToolResponse{
-			Data:   responseData,
+			Data:   wrapKubectlError(rawError, command),
 			Status: core.NBToolResponseStatusError,
 		}, err
 	}
@@ -579,6 +588,63 @@ func (m KubectlExecuteTool) Call(nbRequestContext core.NbToolContext, input core
 	}
 
 	return resp, nil
+}
+
+// wrapKubectlError mirrors tool_shell's wrapShellError for kubectl-side
+// failures. When the raw response matches a known opaque-failure pattern
+// (the shim's `Error: Server returned NNN: ...` wrapper that the LLM
+// otherwise sees as an unactionable "infrastructure broken" signal), we
+// emit a structured {"error_hint": ..., "original_error": ...} envelope
+// so the LLM gets something to act on. Raw stderr is preserved verbatim
+// under original_error. Pass-through unchanged when no pattern matches.
+//
+// Pattern coverage today (driven by the 14-day error distribution in
+// issue #32240):
+//   - "Server returned 500: ...status: 400 Bad Request..." — the kubectl
+//     command was syntactically valid as a Go string but the workspace
+//     pod rejected it. Hint points at common kubectl bad-command shapes.
+//   - "Server returned 500: ...findings field not found..." — defensive
+//     after-the-fact coverage. The parser fix in
+//     getRelayCommandResponseData removes the dominant source of this,
+//     but we keep the hint in case another code path produces it.
+func wrapKubectlError(rawError, command string) string {
+	if rawError == "" {
+		return rawError
+	}
+	hint := kubectlErrorHint(rawError)
+	if hint == "" {
+		return rawError
+	}
+	envelope := map[string]string{
+		"error_hint":     hint,
+		"original_error": rawError,
+	}
+	body, err := common.MarshalJson(envelope)
+	if err != nil {
+		// Marshal failure is exceptionally unlikely with two string fields;
+		// fall back to raw so the LLM still sees the underlying signal.
+		return rawError
+	}
+	return string(body)
+}
+
+// kubectlErrorHint maps a raw kubectl error string to an actionable hint
+// for the LLM. Returns "" when no pattern matches — the caller then
+// passes the raw error through unchanged.
+func kubectlErrorHint(rawError string) string {
+	lower := strings.ToLower(rawError)
+	switch {
+	case strings.Contains(lower, "status: 400 bad request"):
+		return "The workspace pod rejected this kubectl command as malformed (HTTP 400). Common causes: missing `-n <namespace>` flag, invalid resource type (e.g. `pos` instead of `pods`), bad `--field-selector` syntax, or an unknown subresource. Try `kubectl explain <resource>` to verify field names, `kubectl <verb> --dry-run=client -o yaml` to validate the command shape, and add `-v=6` for more detail on what the API server saw."
+	case strings.Contains(lower, "findings field not found"):
+		// Decoupled from any "server returned 500" wrapper so the hint
+		// fires whether the error reaches us via the shim ("Error:
+		// Server returned 500: {...findings field not found...}") or
+		// directly from a parser (errors.New("findings field not found
+		// or is nil from data")) — see PR #32243 Gemini review.
+		return "The relay-server returned a response shape the parser didn't recognize. This was the dominant failure mode pre-#32240; if you are seeing it post-fix the relay or workspace pod is returning an unexpected payload — retry once, then fall back to a `resource_search` to confirm the resource exists."
+	}
+	return ""
 }
 
 func (m KubectlExecuteTool) IdentifyConfig(ctx core.NbToolContext, input core.NBToolCallRequest, availableConfigs []core.ToolConfig) (core.ToolConfig, error) {
