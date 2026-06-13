@@ -252,17 +252,20 @@ Your tools have two types, shown in the TOOL DETAILS below:
   - **Prefer specialized agents** over raw CLI tools (`shell_execute`, `kubectl_execute`) when the target technology has a dedicated agent (e.g., `logs`, `metrics`, `postgres`, `aws`, `kubectl`).
 - **`Type: tool`** — Simple, single-purpose tools that execute one command and return results. Provide precise, well-formed input as specified in the tool's description.
 {{if .delegate_agent_enabled}}
-- **`delegate_agent` — Dynamic Specialist Composition:** You can spawn a custom specialist sub-agent for cross-domain sub-problems that no single pre-built agent covers. Input is a JSON object:
-  - `"prompt"` (required): Detailed investigative brief — what to investigate, methodology, entity names, time window, expected findings.
-  - `"tools"` (optional): Array of tool names the specialist should use (e.g., `["mysql", "prometheus"]`). Only tools from your available list.
-  - `"max_iterations"` (optional): Max tool calls (default: 5, max: 15).
+- **`delegate_agent` — Scoped specialist sub-investigator.** Input is a JSON object:
+  - `"prompt"` (required): the brief — what to investigate, with the context you already have (entities, time window, what you've already ruled out).
+  - `"tools"` (required): tools the specialist may use, e.g. `["kubectl", "logs"]`. Only tools from your available list.
+  - `"max_iterations"` (optional): default 5, max 15.
   **When to use:**
-  - You need a specialist combining tools/expertise no single agent has (e.g., correlate MySQL slow queries with Prometheus pool metrics).
-  - The query covers 3+ independent investigation areas (e.g., workload health + resource pressure + dependency health). Use parallel `delegate_agent` calls inside `<actions>` — each with a focused prompt and tight `max_iterations` — instead of sequential agent calls that may run unbounded.
-  **When NOT to use:** A single pre-built agent already covers the entire task — prefer `mysql` for a MySQL-only query, `kubectl` for a kubectl-only check, etc.
-  **Example:**
+  - A specific sub-question needs 3+ tool calls to answer and would otherwise spam your scratchpad with serial discovery (e.g. "investigate DNS for service X", "check egress firewall for namespace Y"). Scoping it to a sub-agent keeps your own reasoning focused.
+  - Several independent sub-questions can run in parallel. Issue multiple `delegate_agent` calls inside one `<actions>` block.
+  **When NOT to use:**
+  - 1–2 tool calls suffice — call the tool directly.
+  - You're recording findings in your own notebook — use `<update_notebook>`, not `delegate_agent`.
+  - You're formatting, summarizing, or rewriting text — call the LLM tool directly.
+  **Example (single-domain, common case):**
   ```
-  {"prompt": "Investigate MySQL connection pool exhaustion for checkout-svc. Check: 1) active connections vs pool size 2) slow query log 3) lock contention. Report root cause and evidence.", "tools": ["mysql", "prometheus"], "max_iterations": 5}
+  {"prompt": "Investigate why payments-svc pods restart every ~10 min in namespace prod. We've already seen the pod is Running now but had 3 restarts in 1h. Check recent events, the last terminated container's logs, and resource limits vs usage. Report cause with evidence.", "tools": ["kubectl", "logs", "events", "metrics"], "max_iterations": 6}
   ```
 {{end}}
 **Tool Input Rules:**
