@@ -1,6 +1,12 @@
 #!/bin/bash
 
 set -e
+# pipefail is required so `psql ... | tr` failures propagate. Without it, an
+# erroring psql probe silently produces an empty bootstrap_state, the if-arm
+# below misclassifies as "skip", and `migrate up` then re-runs V0 against a
+# pre-migrated DB (CREATE TABLE tenant -> "already exists"). See the bootstrap
+# detector below for the specific failure mode this catches.
+set -o pipefail
 
 # Apply pending Postgres migrations from migrations/app/. Uses golang-migrate
 # (same tool the ClickHouse step below uses), tracking applied state in
@@ -59,15 +65,37 @@ MIGRATE_DB_URL="${APP_DATABASE_URL}${PG_URL_SEP}x-migrations-table=%22nudgebee%2
 # skip the bootstrap entirely. Also skips on fresh installs (no public.tenant
 # table) so V0..V<N> apply normally.
 
-bootstrap_state=$(psql "$APP_DATABASE_URL" -v ON_ERROR_STOP=1 -tAq -c "
-  SELECT CASE
-    WHEN NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='tenant') THEN 'skip-fresh-db'
-    WHEN NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='nudgebee' AND table_name='schema_migrations') THEN 'bootstrap-virgin'
-    WHEN NOT EXISTS (SELECT 1 FROM nudgebee.schema_migrations) THEN 'bootstrap-empty'
-    WHEN EXISTS (SELECT 1 FROM nudgebee.schema_migrations WHERE dirty IS TRUE AND version = 1665080411172) THEN 'bootstrap-dirty-v0'
-    ELSE 'skip-already-set'
-  END;
+# Detector must be stepwise, not a single CASE expression. Postgres plans every
+# WHEN arm at parse time, so a `SELECT FROM nudgebee.schema_migrations` inside
+# any arm fails to plan when that table doesn't exist yet — even when an
+# earlier arm would have matched. That is exactly the virgin-cutover state
+# (Hasura-managed DB, no golang-migrate tracker), which is the case the
+# bootstrap was written for. Use `to_regclass()` to probe existence safely
+# (NULL on missing, no error), and only query the tracker once we've confirmed
+# it's present.
+has_tenant=$(psql "$APP_DATABASE_URL" -v ON_ERROR_STOP=1 -tAq -c "
+  SELECT to_regclass('public.tenant') IS NOT NULL;
 " | tr -d '[:space:]')
+
+if [[ "$has_tenant" != "t" ]]; then
+    bootstrap_state="skip-fresh-db"
+else
+    has_tracker=$(psql "$APP_DATABASE_URL" -v ON_ERROR_STOP=1 -tAq -c "
+      SELECT to_regclass('nudgebee.schema_migrations') IS NOT NULL;
+    " | tr -d '[:space:]')
+
+    if [[ "$has_tracker" != "t" ]]; then
+        bootstrap_state="bootstrap-virgin"
+    else
+        bootstrap_state=$(psql "$APP_DATABASE_URL" -v ON_ERROR_STOP=1 -tAq -c "
+          SELECT CASE
+            WHEN NOT EXISTS (SELECT 1 FROM nudgebee.schema_migrations) THEN 'bootstrap-empty'
+            WHEN EXISTS (SELECT 1 FROM nudgebee.schema_migrations WHERE dirty IS TRUE AND version = 1665080411172) THEN 'bootstrap-dirty-v0'
+            ELSE 'skip-already-set'
+          END;
+        " | tr -d '[:space:]')
+    fi
+fi
 
 if [[ "$bootstrap_state" == bootstrap-* ]]; then
     # Resolve baseline. Sources in priority order:
