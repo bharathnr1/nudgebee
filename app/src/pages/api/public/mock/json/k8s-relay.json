@@ -6097,5 +6097,65 @@
       ]
     },
     "output_type": "actions"
+  },
+  "k8s_nodepools": {
+    "data": {
+      "success": true,
+      "findings": [
+        {
+          "evidence": [
+            {
+              "data": "[{\"type\": \"json\", \"data\": \"{\\\"apiVersion\\\": \\\"karpenter.sh/v1\\\", \\\"items\\\": [{\\\"apiVersion\\\": \\\"karpenter.sh/v1\\\", \\\"kind\\\": \\\"NodePool\\\", \\\"metadata\\\": {\\\"name\\\": \\\"default\\\", \\\"creationTimestamp\\\": \\\"2024-01-15T10:00:00Z\\\"}, \\\"spec\\\": {\\\"template\\\": {\\\"spec\\\": {\\\"requirements\\\": [{\\\"key\\\": \\\"karpenter.sh/capacity-type\\\", \\\"operator\\\": \\\"In\\\", \\\"values\\\": [\\\"on-demand\\\"]}, {\\\"key\\\": \\\"kubernetes.io/arch\\\", \\\"operator\\\": \\\"In\\\", \\\"values\\\": [\\\"amd64\\\"]}]}}, \\\"disruption\\\": {\\\"consolidationPolicy\\\": \\\"WhenUnderutilized\\\", \\\"consolidateAfter\\\": \\\"30s\\\"}, \\\"limits\\\": {\\\"cpu\\\": 100}}, \\\"status\\\": {\\\"resources\\\": {\\\"cpu\\\": \\\"24\\\", \\\"memory\\\": \\\"96Gi\\\", \\\"pods\\\": \\\"12\\\"}}}]}\"}]"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "k8s_ec2nodeclasses": {
+    "data": {
+      "success": true,
+      "findings": [
+        {
+          "evidence": [
+            {
+              "data": "[{\"type\": \"json\", \"data\": \"{\\\"apiVersion\\\": \\\"karpenter.k8s.aws/v1\\\", \\\"items\\\": [{\\\"apiVersion\\\": \\\"karpenter.k8s.aws/v1\\\", \\\"kind\\\": \\\"EC2NodeClass\\\", \\\"metadata\\\": {\\\"name\\\": \\\"default\\\", \\\"creationTimestamp\\\": \\\"2024-01-15T10:00:00Z\\\"}, \\\"spec\\\": {\\\"amiFamily\\\": \\\"AL2\\\", \\\"role\\\": \\\"KarpenterNodeRole-demo-cluster\\\", \\\"subnetSelectorTerms\\\": [{\\\"tags\\\": {\\\"karpenter.sh/discovery\\\": \\\"demo-cluster\\\"}}], \\\"securityGroupSelectorTerms\\\": [{\\\"tags\\\": {\\\"karpenter.sh/discovery\\\": \\\"demo-cluster\\\"}}], \\\"instanceStorePolicy\\\": \\\"RAID0\\\"}, \\\"status\\\": {\\\"amis\\\": [{\\\"id\\\": \\\"ami-0123456789abcdef0\\\", \\\"name\\\": \\\"amazon-eks-node-1.29-v20240101\\\"}]}}]}\"}]"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "k8s_persistentvolumes": {
+    "data": {
+      "success": true,
+      "findings": [
+        {
+          "evidence": [
+            {
+              "data": "[{\"type\": \"json\", \"data\": \"{\\\"apiVersion\\\": \\\"v1\\\", \\\"items\\\": [{\\\"apiVersion\\\": \\\"v1\\\", \\\"kind\\\": \\\"PersistentVolume\\\", \\\"metadata\\\": {\\\"name\\\": \\\"pvc-demo-001\\\", \\\"creationTimestamp\\\": \\\"2024-03-01T08:00:00Z\\\"}, \\\"spec\\\": {\\\"capacity\\\": {\\\"storage\\\": \\\"50Gi\\\"}, \\\"accessModes\\\": [\\\"ReadWriteOnce\\\"], \\\"storageClassName\\\": \\\"ebs-sc-gp3\\\", \\\"claimRef\\\": {\\\"name\\\": \\\"data-clickhouse-shard0-0\\\", \\\"namespace\\\": \\\"clickhouse\\\"}, \\\"persistentVolumeReclaimPolicy\\\": \\\"Delete\\\"}, \\\"status\\\": {\\\"phase\\\": \\\"Bound\\\"}}]}\"}]"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "logs_enricher": {
+    "data": {
+      "success": false,
+      "findings": []
+    }
+  },
+  "get_resource_yaml": {
+    "data": {
+      "success": false,
+      "findings": []
+    }
+  },
+  "query_autocomplete": {
+    "data": {
+      "success": true,
+      "data": []
+    }
   }
 }

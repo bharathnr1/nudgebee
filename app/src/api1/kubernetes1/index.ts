@@ -864,6 +864,17 @@ const apiKubernetes1 = {
     return response;
   },
   async getEventAggregate(data: any, columns: string[]) {
+    if (data.account_id === 'demo') {
+      return {
+        data: {
+          data: {
+            event_groupings_v2: {
+              rows: [{ event_count: 42, count_application_issues: 8 }],
+            },
+          },
+        },
+      };
+    }
     const query: any = {};
     query.account_id = { _eq: data.account_id };
 
@@ -1718,6 +1729,10 @@ const apiKubernetes1 = {
     }
   },
   logGroup: async function (data: any) {
+    if (data?.account_id === 'demo') {
+      const mockData = await getMockData('k8s-log-groups');
+      return { data: { data: mockData } };
+    }
     const LOG_GROUP_REQUEST = `
     query LogGroup {
       log_group(request: __WHERE__) {

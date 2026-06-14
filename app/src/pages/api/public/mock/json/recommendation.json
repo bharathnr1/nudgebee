@@ -84,7 +84,7 @@
     "k8s_recommendation_summary": {
       "recommendation_aggregate": {
         "aggregate": {
-          "count": 19
+          "count": 10
         }
       }
     },
@@ -437,7 +437,7 @@
       ],
       "recommendation_aggregate": {
         "aggregate": {
-          "count": 19
+          "count": 10
         }
       }
     }
@@ -1288,7 +1288,12 @@
             "updated_at": "2024-01-28T06:33:40.858615",
             "id": "69a268e6-8d16-4391-a9a5-970e9af0771f"
           }
-        ]
+        ],
+        "recommendation_aggregate": {
+          "aggregate": {
+            "count": 7
+          }
+        }
       }
     },
     "k8s_recommendation_summary": {
@@ -7085,7 +7090,12 @@
             "updated_at": "2024-02-28T17:50:13.19098",
             "id": "04a7608d-51b1-4e8d-b96f-07ae6c01ed02"
           }
-        ]
+        ],
+        "recommendation_aggregate": {
+          "aggregate": {
+            "count": 4
+          }
+        }
       }
     },
     "k8s_recommendation_summary": {
@@ -8787,7 +8797,12 @@
             "updated_at": "2024-03-19T14:06:47.260558",
             "id": "c0116ad6-5982-42ac-be73-99dad6c88916"
           }
-        ]
+        ],
+        "recommendation_aggregate": {
+          "aggregate": {
+            "count": 10
+          }
+        }
       }
     },
     "k8s_recommendation_summary": {
@@ -8950,7 +8965,12 @@
             "updated_at": "2024-03-19T14:00:27.171255",
             "id": "71535c02-58b4-4739-bec6-b7b03aff68ab"
           }
-        ]
+        ],
+        "recommendation_aggregate": {
+          "aggregate": {
+            "count": 1
+          }
+        }
       }
     },
     "k8s_recommendation_summary": {
@@ -12015,7 +12035,12 @@
             "updated_at": "2023-11-22T11:42:13.251214",
             "id": "e732e457-b327-43b7-b8ba-62e089bd7a0c"
           }
-        ]
+        ],
+        "recommendation_aggregate": {
+          "aggregate": {
+            "count": 10
+          }
+        }
       }
     },
     "k8s_recommendation_summary": {
@@ -14115,7 +14140,12 @@
             "updated_at": "2024-03-19T12:02:33.760871",
             "id": "0e13ad39-4684-485a-a0e2-24f2880c0d62"
           }
-        ]
+        ],
+        "recommendation_aggregate": {
+          "aggregate": {
+            "count": 10
+          }
+        }
       }
     },
     "k8s_workload_namespace_list": {
