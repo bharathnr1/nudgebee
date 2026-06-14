@@ -1848,6 +1848,16 @@ func reActCreatePrompt3(ctx *security.RequestContext, agentPrompt string, toolsI
 		reactBasePrompt = prompts_repo.GetPrompt(prompts_repo.PromptPlannerReactBase3)
 	}
 
+	// hypothesis_mode_enabled fences the heavier hypothesis-driven investigation
+	// discipline (Scope → Hypothesis Tree → completion gate) to the top-level
+	// orchestrator. Sub-agents (ParentAgentId set to another agent) keep only the
+	// lightweight notebook so they don't each spin up their own hypothesis tree —
+	// that nesting blows up tokens/latency. Both inputs are stable for a given
+	// agent role, so the cached system prefix is not busted per request.
+	notebookEnabled := ResolveAgentNotebookEnabled(agent)
+	isTopLevel := request.ParentAgentId == "" || request.ParentAgentId == request.AgentId
+	hypothesisModeEnabled := notebookEnabled && isTopLevel
+
 	// Only declare template variables actually referenced in planner_react_3_base.txt.
 	// Dynamic vars (history, conversation_context, input, scratchpad) are in the human
 	// message to keep the system prefix stable for caching.
@@ -1862,6 +1872,7 @@ func reActCreatePrompt3(ctx *security.RequestContext, agentPrompt string, toolsI
 				"shell_tool_enabled",
 				"delegate_agent_enabled",
 				"notebook_enabled",
+				"hypothesis_mode_enabled",
 				"conversation_context_enabled",
 				"context_management_rules",
 				"time_handling_rules",
@@ -1976,7 +1987,8 @@ func reActCreatePrompt3(ctx *security.RequestContext, agentPrompt string, toolsI
 		"workspace_enabled":            config.Config.LlmServerWorkspaceEnabled,
 		"shell_tool_enabled":           config.Config.LlmServerShellToolEnabled && HasShellTool(tools),
 		"delegate_agent_enabled":       HasDelegateAgentTool(tools),
-		"notebook_enabled":             ResolveAgentNotebookEnabled(agent),
+		"notebook_enabled":             notebookEnabled,
+		"hypothesis_mode_enabled":      hypothesisModeEnabled,
 		"conversation_context_enabled": config.Config.ConversationContextEnabled,
 		"context_management_rules":     prompts_repo.GetPrompt(prompts_repo.PromptContextContinuity),
 		"time_handling_rules":          prompts_repo.GetPrompt(prompts_repo.PromptSharedTimeHandlingRules),
