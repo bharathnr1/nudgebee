@@ -514,6 +514,18 @@ func (m KubectlExecuteTool) Call(nbRequestContext core.NbToolContext, input core
 			workspace.ENV_NB_TOOL_CONFIG_NAME: nbRequestContext.ToolConfig.Name,
 		})
 		if err != nil {
+			// Pipeline-tail no-match reclassification (issue #32240).
+			// The LLM regularly uses kubectl with `| grep` / `| awk` /
+			// `| jq` to filter output (`kubectl get pods | grep api-server`).
+			// When the filter finds nothing the pipeline exits 1, the
+			// workspace reports "exit status 1", and the LLM sees an
+			// opaque failure for what was a successful empty result. The
+			// helpers from tool_shell.go (PR #32007) already classify
+			// these correctly; we just need to wire them in.
+			if isNoMatchExit(err, command) {
+				nbRequestContext.Ctx.GetLogger().Info("k8s: reclassified pipeline-tail no-match as success", "command", command)
+				return successResponseNoMatches(nbRequestContext, response)
+			}
 			nbRequestContext.Ctx.GetLogger().Error("k8s: unable to execute shell script", "error", err.Error(), "command", command)
 			if response == "" {
 				response = err.Error()

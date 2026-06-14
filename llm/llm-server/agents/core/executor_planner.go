@@ -1490,6 +1490,36 @@ func toolStatusToExitCode(status ToolStatus) int {
 	}
 }
 
+// isNoMatchEnvelope returns true when the tool emitted the canonical
+// empty-result envelope shape: a JSON object that contains the
+// `"no_matches":true` key/value, allowing tolerant whitespace between
+// the key, colon, and value. The classifier needs this because tools
+// that return an explicit `no_matches:true` JSON envelope (today:
+// shell_execute / kubectl_execute / helm_execute via
+// successResponseNoMatches; potentially others later) carry the
+// semantic in their Data — but Data is non-empty, so without this
+// recognition the classifier defaults to ToolStatusSuccess (ExitStatus=0)
+// instead of ToolStatusEmptyResult (ExitStatus=2), losing the
+// "empty-but-successful" signal the footer is supposed to expose.
+//
+// Substring-match deliberately — anchoring to start-of-string would
+// miss envelopes that put `"stdout":""` first (Go's encoding/json
+// orders map keys alphabetically, so `no_matches` lands before
+// `stdout`; but any future tool that uses a different key order or
+// nests the envelope inside an outer struct should still hit). False
+// positives require a tool to genuinely contain the literal
+// `"no_matches":true` in its output — vanishingly rare for normal
+// command output and conservative on purpose.
+func isNoMatchEnvelope(data string) bool {
+	if data == "" {
+		return false
+	}
+	// Tolerate one optional whitespace char between the `"` and `:`
+	// (encoders that pretty-print or hand-built shapes).
+	return strings.Contains(data, `"no_matches":true`) ||
+		strings.Contains(data, `"no_matches": true`)
+}
+
 // formatToolMetadataFooter renders the trailing
 // "[exitStatus: N | executionDuration: Xms]" marker the planner sees
 // appended to every tool observation. Built from Metadata at prompt-render
@@ -1907,7 +1937,7 @@ func (e *plannerExecutor) doAction(nameToTool map[string]toolcore.NBTool, action
 	var status ToolStatus
 	if observation.Status == toolcore.NBToolResponseStatusError {
 		status = ToolStatusFailure
-	} else if observation.Data == "" || observation.Data == plannerToolNoData || observation.Data == "[]" {
+	} else if observation.Data == "" || observation.Data == plannerToolNoData || observation.Data == "[]" || isNoMatchEnvelope(observation.Data) {
 		status = ToolStatusEmptyResult
 	} else {
 		status = ToolStatusSuccess

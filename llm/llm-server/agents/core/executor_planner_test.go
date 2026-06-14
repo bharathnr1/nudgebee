@@ -1055,6 +1055,105 @@ func TestToolStatusToExitCode(t *testing.T) {
 	}
 }
 
+// TestIsNoMatchEnvelope pins the classifier's recognition of the
+// `"no_matches":true` JSON envelope that shell_execute / kubectl_execute
+// / helm_execute emit via successResponseNoMatches. Without this, those
+// tools' non-empty Data falls through to ToolStatusSuccess (ExitStatus=0)
+// even though semantically they ran successfully with no matches — the
+// "exit status 2" signal the footer is supposed to expose.
+func TestIsNoMatchEnvelope(t *testing.T) {
+	cases := []struct {
+		name string
+		data string
+		want bool
+	}{
+		// Positive — the canonical shape successResponseNoMatches emits.
+		{"canonical shell shape (alphabetical key order)", `{"no_matches":true,"stdout":""}`, true},
+		{"canonical with stdout content", `{"no_matches":true,"stdout":"hello\nworld\n"}`, true},
+		{"tolerant whitespace between colon and true", `{"no_matches": true,"stdout":""}`, true},
+		{"key order reversed", `{"stdout":"","no_matches":true}`, true},
+		{"nested inside an outer wrapper (future-proofing)", `{"result":{"no_matches":true,"stdout":""}}`, true},
+
+		// Negative — must NOT trigger.
+		{"empty string", "", false},
+		{"plain success with content", `{"stdout":"alpha\nbeta\n"}`, false},
+		{"no_matches false", `{"no_matches":false,"stdout":"alpha"}`, false},
+		{"merely contains the word no_matches", `{"stdout":"the no_matches script ran"}`, false},
+		{"different key entirely", `{"matches":0,"stdout":""}`, false},
+		// JSON-escaped quotes (`\"`) do NOT trigger — the literal
+		// `"no_matches":true` substring isn't there, only the escaped
+		// form `\"no_matches\":true`. Confirms the recognition is
+		// quote-shape-sensitive, not just keyword-presence-based.
+		{"no_matches:true mentioned in escaped form in user text — no false positive",
+			`{"stdout":"the response is \"no_matches\":true literally"}`, false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			assert.Equal(t, c.want, isNoMatchEnvelope(c.data))
+		})
+	}
+}
+
+// TestClassifierExitStatus2_FiresForNoMatchEnvelope is the integration-
+// shaped test that pins the EXACT problem from the PR #32253 follow-up
+// discussion: shell_execute's no-match envelope was being classified as
+// ExitStatus=0 instead of 2 because the classifier's "empty Data"
+// heuristic was too narrow. This test asserts the alignment is now
+// correct by walking the classifier's branch logic directly.
+func TestClassifierExitStatus2_FiresForNoMatchEnvelope(t *testing.T) {
+	cases := []struct {
+		name           string
+		status         toolcore.NBToolResponseStatus
+		data           string
+		wantToolStatus ToolStatus
+	}{
+		{"Error trumps everything",
+			toolcore.NBToolResponseStatusError, `{"no_matches":true,"stdout":""}`, ToolStatusFailure},
+		{"empty Data → EmptyResult (legacy path)",
+			toolcore.NBToolResponseStatusSuccess, "", ToolStatusEmptyResult},
+		{"plannerToolNoData sentinel → EmptyResult (legacy path)",
+			toolcore.NBToolResponseStatusSuccess, plannerToolNoData, ToolStatusEmptyResult},
+		{"`[]` Data → EmptyResult (legacy path)",
+			toolcore.NBToolResponseStatusSuccess, "[]", ToolStatusEmptyResult},
+		{"no_matches:true envelope → EmptyResult (this PR)",
+			toolcore.NBToolResponseStatusSuccess, `{"no_matches":true,"stdout":""}`, ToolStatusEmptyResult},
+		{"no_matches:true envelope with content stdout → EmptyResult (this PR)",
+			toolcore.NBToolResponseStatusSuccess, `{"no_matches":true,"stdout":"some text"}`, ToolStatusEmptyResult},
+		{"regular success with content → Success",
+			toolcore.NBToolResponseStatusSuccess, `{"stdout":"hello"}`, ToolStatusSuccess},
+		{"explicit no_matches:false → Success (not EmptyResult)",
+			toolcore.NBToolResponseStatusSuccess, `{"no_matches":false,"stdout":"hit"}`, ToolStatusSuccess},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			// Mirror the classifier branch order from doAction. Keeping
+			// this in lockstep with the production code is the point.
+			var got ToolStatus
+			switch {
+			case c.status == toolcore.NBToolResponseStatusError:
+				got = ToolStatusFailure
+			case c.data == "" || c.data == plannerToolNoData || c.data == "[]" || isNoMatchEnvelope(c.data):
+				got = ToolStatusEmptyResult
+			default:
+				got = ToolStatusSuccess
+			}
+			assert.Equal(t, c.wantToolStatus, got)
+			assert.Equal(t, exitCodeFor(c.wantToolStatus), toolStatusToExitCode(got))
+		})
+	}
+}
+
+func exitCodeFor(s ToolStatus) int {
+	switch s {
+	case ToolStatusFailure:
+		return 1
+	case ToolStatusEmptyResult:
+		return 2
+	default:
+		return 0
+	}
+}
+
 func TestFormatToolMetadataFooter(t *testing.T) {
 	cases := []struct {
 		name string
