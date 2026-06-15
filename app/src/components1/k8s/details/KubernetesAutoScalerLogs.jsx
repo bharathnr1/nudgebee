@@ -43,6 +43,7 @@ const KubernetesAutoScalerLogs = ({ accountId, namespace, autoscalerType }) => {
 
   useEffect(() => {
     if (!accountId || !namespace) {
+      setLoading(false);
       return;
     }
     setLoading(true);
