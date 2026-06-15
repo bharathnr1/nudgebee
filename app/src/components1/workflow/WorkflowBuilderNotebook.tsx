@@ -483,6 +483,8 @@ const WorkflowBuilderNoteBook: React.FC<WorkflowBuilderNotebookProps> = ({ mode 
   const [publishing, setPublishing] = useState(false);
   const [confirmLiveVersion, setConfirmLiveVersion] = useState<WorkflowVersionEntry | null>(null);
   const [settingLive, setSettingLive] = useState(false);
+  const [confirmDeleteVersion, setConfirmDeleteVersion] = useState<WorkflowVersionEntry | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Keep nubiChatContext in sync with workflowData (id + definition)
   // so that NuBi chat always sends the current workflow context to the backend
@@ -1855,6 +1857,32 @@ const WorkflowBuilderNoteBook: React.FC<WorkflowBuilderNotebookProps> = ({ mode 
       console.error('Failed to refresh workflow versions:', err);
     }
   }, [accountId, workflowId]);
+
+  // Hard-deletes a single version. The Delete button is only rendered for
+  // non-live / non-draft rows, but the backend re-guards both so a stale UI
+  // can't slip a load-bearing version through. Refresh the list afterwards so
+  // the deleted row disappears.
+  const handleConfirmDelete = useCallback(async () => {
+    if (!confirmDeleteVersion || !accountId || !workflowId) return;
+    const targetVersion = confirmDeleteVersion.version_number;
+    setDeleting(true);
+    try {
+      const response: any = await apiWorkflow.deleteWorkflowVersion(accountId, workflowId, targetVersion);
+      const errMsg = parseHttpResponseBodyMessage(response);
+      if (errMsg) {
+        snackbar.error(errMsg);
+        return;
+      }
+      snackbar.success(`Deleted v${targetVersion}.`);
+      setConfirmDeleteVersion(null);
+      await refreshVersions();
+    } catch (err) {
+      console.error('Failed to delete workflow version:', err);
+      snackbar.error('Failed to delete version.');
+    } finally {
+      setDeleting(false);
+    }
+  }, [accountId, confirmDeleteVersion, refreshVersions, workflowId]);
 
   const openPublishDialog = useCallback(() => {
     setPublishName('');
@@ -4541,7 +4569,7 @@ const WorkflowBuilderNoteBook: React.FC<WorkflowBuilderNotebookProps> = ({ mode 
                                 size='sm'
                                 value={v.status ?? 'PAUSED'}
                                 onChange={(next) => handleChangeVersionStatus(v.version_number, next as 'ACTIVE' | 'PAUSED' | 'INACTIVE')}
-                                disabled={statusUpdatingVersionNumber !== null || settingLive || restoring}
+                                disabled={statusUpdatingVersionNumber !== null || settingLive || restoring || deleting}
                                 clearable={false}
                                 options={[
                                   { value: 'ACTIVE', label: 'Active' },
@@ -4556,7 +4584,7 @@ const WorkflowBuilderNoteBook: React.FC<WorkflowBuilderNotebookProps> = ({ mode 
                                   tone='primary'
                                   size='sm'
                                   onClick={() => setConfirmLiveVersion(v)}
-                                  disabled={statusUpdatingVersionNumber !== null || settingLive || restoring}
+                                  disabled={statusUpdatingVersionNumber !== null || settingLive || restoring || deleting}
                                 >
                                   Make Live
                                 </Button>
@@ -4566,10 +4594,40 @@ const WorkflowBuilderNoteBook: React.FC<WorkflowBuilderNotebookProps> = ({ mode 
                                 tone='secondary'
                                 size='sm'
                                 onClick={() => setConfirmRestoreVersion(v)}
-                                disabled={statusUpdatingVersionNumber !== null || settingLive || restoring}
+                                disabled={statusUpdatingVersionNumber !== null || settingLive || restoring || deleting}
                               >
                                 Checkout
                               </Button>
+                              {/* Delete is always shown, but disabled for the two
+                                versions the workflow still depends on — the live
+                                version and the version the current draft is branched
+                                off — with a tooltip explaining why. The backend
+                                re-guards both, so this is purely UX. */}
+                              {(() => {
+                                const isDraftBase = v.version_number === workflowData?.draft_version_number;
+                                const blockReason = v.is_live
+                                  ? 'Cannot delete the live version. Make another version live first.'
+                                  : isDraftBase
+                                  ? 'Cannot delete the version your current draft is based on. Checkout another version first.'
+                                  : '';
+                                return (
+                                  <Tooltip title={blockReason} disableHoverListener={!blockReason}>
+                                    <span style={{ width: '100%', display: 'block' }}>
+                                      <Button
+                                        id={`workflow-delete-v${v.version_number}-btn`}
+                                        tone='danger'
+                                        size='sm'
+                                        fullWidth
+                                        onClick={() => setConfirmDeleteVersion(v)}
+                                        disabled={!!blockReason || statusUpdatingVersionNumber !== null || settingLive || restoring || deleting}
+                                        data-testid={`workflow-version-delete-v${v.version_number}`}
+                                      >
+                                        Delete
+                                      </Button>
+                                    </span>
+                                  </Tooltip>
+                                );
+                              })()}
                             </Box>
                           ) : (
                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexShrink: 0, minWidth: 130 }}>
@@ -4620,6 +4678,31 @@ const WorkflowBuilderNoteBook: React.FC<WorkflowBuilderNotebookProps> = ({ mode 
               <Typography variant='body2' sx={{ color: ds.gray[700] }}>
                 Your current draft will be replaced with the contents of v{confirmRestoreVersion?.version_number}. The live version that runs
                 executions is NOT changed. Publish again to snapshot the restored draft as a new version.
+              </Typography>
+            </Box>
+          </Modal>
+
+          {/* Delete Version Confirmation Dialog */}
+          <Modal
+            open={!!confirmDeleteVersion}
+            handleClose={() => (deleting ? undefined : setConfirmDeleteVersion(null))}
+            width='sm'
+            title={`Delete version ${confirmDeleteVersion?.version_number ?? ''}?`}
+            actionButtons={
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, p: 2 }}>
+                <Button tone='secondary' size='md' onClick={() => setConfirmDeleteVersion(null)} disabled={deleting}>
+                  Cancel
+                </Button>
+                <Button id='workflow-delete-confirm-btn' tone='danger' size='md' onClick={handleConfirmDelete} disabled={deleting} loading={deleting}>
+                  {deleting ? 'Deleting…' : 'Delete'}
+                </Button>
+              </Box>
+            }
+          >
+            <Box sx={{ p: 'var(--ds-space-4) 0' }}>
+              <Typography variant='body2' sx={{ color: ds.gray[700] }}>
+                This permanently removes the v{confirmDeleteVersion?.version_number} snapshot and cannot be undone. The live version and any past
+                executions are unaffected.
               </Typography>
             </Box>
           </Modal>
