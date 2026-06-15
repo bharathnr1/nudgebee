@@ -504,9 +504,15 @@ const KubernetesEventsTable = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Sync the account selection when the prop / URL query supplies one (deep links,
+  // account-scoped page, router becoming ready). When neither is present, leave the
+  // current selection alone — clobbering it to [] here would wipe the value the
+  // useState initializer seeded from persisted localStorage, so the saved filter
+  // would never apply on return to the tab. Clearing is handled by the change handler.
   useEffect(() => {
     const raw = accountId || router.query.accountId;
-    const next = raw ? String(raw).split(',').filter(Boolean) : [];
+    if (!raw) return;
+    const next = String(raw).split(',').filter(Boolean);
     setSelectedAccountId((prev) => {
       if (prev.length === next.length && prev.every((id, i) => id === next[i])) return prev;
       return next;
