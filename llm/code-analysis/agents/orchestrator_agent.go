@@ -2382,6 +2382,32 @@ func looksLikeGitSHA(s string) bool {
 	return gitSHARegex.MatchString(s)
 }
 
+// seedRepoCloneBranch tells the repo_clone tool which branch to check out when an
+// invocation omits an explicit `branch`. It uses the request's target/base branch
+// (RepoContext.Branch) — the branch the PR will target — so the working tree and any
+// fix branch cut from it start there instead of the remote default branch (e.g. main).
+// Empty/HEAD/SHA-shaped values reset the default to "" (the remote default branch):
+// SHAs are valid commits but not checkout branches and would be rejected by
+// `gh pr create --base <SHA>` ("Base ref must be a branch").
+func seedRepoCloneBranch(tool *tools.RepoCloneTool, sessionCtx *session.SessionContext) {
+	if tool == nil {
+		return
+	}
+	// The orchestrator and its specialist agents (and therefore this repo_clone
+	// tool) are long-lived on the singleton handler and reused across requests, so
+	// always overwrite the previous request's value rather than returning early.
+	// Reset to "" when there is no valid branch so the clone falls back to the
+	// remote default branch instead of leaking the prior request's branch.
+	branch := ""
+	if sessionCtx != nil && sessionCtx.RepoContext != nil {
+		branch = sessionCtx.RepoContext.Branch
+	}
+	if branch == "HEAD" || looksLikeGitSHA(branch) {
+		branch = ""
+	}
+	tool.SetDefaultBranch(branch)
+}
+
 // instructionsRequireWrite reports whether any entry in
 // factsData["implementation_instructions"] uses action="write" — the marker
 // that the fix legitimately needs to CREATE a file rather than edit one.
