@@ -866,7 +866,7 @@ Don't revert correct code changes because a failing check is unrelated.
 
 ## Committing and pushing
 
-You commit and push your own work. The git identity (`+"`nudgebee-bot <bot@nudgebee.com>`"+`) is already configured via env vars — just run git commands.
+You commit and push your own work. The git identity (`+"`nudgebee-bot <bot@nudgebee.com>`"+`) is already configured for this repo — just run git commands.
 
 **Two safety rules — non-negotiable:**
 
