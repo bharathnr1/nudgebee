@@ -10,47 +10,100 @@ comment: |
 # Labels is an object where:
 # - keys are labels
 # - values are array of string patterns to match against title + body in issues/prs
+# Conventional-commit-derived type:* labels.
+# Each type accepts BOTH scoped (`fix(scope): ...`) and bare (`fix: ...`) forms
+# so PRs that omit the scope still get categorized.
 labels:
-  'bug':
+  'type:bug':
     - '^fix\(.+\): .+'
-  'feat':
+    - '^fix: .+'
+  'type:feature':
     - '^feat\(.+\): .+'
-  'infra':
+    - '^feat: .+'
+  'type:performance':
+    - '^perf\(.+\): .+'
+    - '^perf: .+'
+  'type:refactor':
+    - '^refactor\(.+\): .+'
+    - '^refactor: .+'
+  'type:docs':
+    - '^docs\(.+\): .+'
+    - '^docs: .+'
+  'type:test':
+    - '^test\(.+\): .+'
+    - '^test: .+'
+  'type:chore':
+    - '^chore\(.+\): .+'
+    - '^chore: .+'
     - '^ci\(.+\): .+'
+    - '^ci: .+'
+  # Cherry-pick / EE→OSS sync PRs (`sync: cherry-pick from EE prod (...)`).
+  # The corresponding release.yml category sits ABOVE the domain categories
+  # so sync PRs don't pollute K8s/LLM/etc. just because they touch every
+  # service path.
+  'sync':
+    - '^sync: .+'
 
+# Path-based labels combine two axes:
+#   domain:* — business area the change touches (used for release-note grouping)
+#   service:* — code location the change lives in (used for issue routing)
+# Many paths qualify for both. release.yml categorizes by domain:* primarily,
+# with type:* as fallback and "*" as catchall.
 file_labels:
-  'UI/UX':
+  # ── Frontend ───────────────────────────────────────────────────────────
+  'service:app':
+    - '^app/.*'
+  'domain:ui':
     - '^app/src/.*'
     - '^app/public/.*'
     - '^app/__tests__/.*'
-  'API':
-    - '^api-server/services/.*'
-  'Database':
-    - '^api-server/migrations/.*'
-    - '^migrations/.*'
-  'Ai':
+
+  # ── API server ─────────────────────────────────────────────────────────
+  'service:api-server':
+    - '^api-server/.*'
+  'domain:hasura':
+    - '^api-server/hasura/.*'
+
+  # ── LLM stack ──────────────────────────────────────────────────────────
+  'service:llm':
     - '^llm/llm-server/.*'
     - '^llm/rag-server/.*'
     - '^llm/code-analysis/.*'
     - '^llm/benchmark/.*'
+  'domain:llm':
+    - '^llm/.*'
     - '^ml-k8s-server/.*'
-  'Notifications':
-    - '^notifications-server/.*'
-  'Testing':
-    - '^app-e2e-tests/.*'
-    - '^api-server/test_servicemap/.*'
-  'Tickets':
-    - '^ticket-server/.*'
-  'AutoRunbook':
-    - '^auto-pilot/.*'
-  'Cloud':
+  'service:ml-k8s-server':
+    - '^ml-k8s-server/.*'
+
+  # ── Collectors ─────────────────────────────────────────────────────────
+  'service:collector-server':
+    - '^collector-server/.*'
+  'domain:cloud':
     - '^collector-server/cloud-collector/.*'
-  'Workflow':
-    - '^runbook-server/.*'
-  'K8s':
+  'domain:k8s':
     - '^collector-server/k8s-collector/.*'
     - '^deploy/kubernetes/.*'
-  'infra':
+
+  # ── Notifications + Tickets ────────────────────────────────────────────
+  'service:notifications-server':
+    - '^notifications-server/.*'
+  'domain:notifications':
+    - '^notifications-server/.*'
+  'service:ticket-server':
+    - '^ticket-server/.*'
+  'domain:tickets':
+    - '^ticket-server/.*'
+
+  # ── Automation / Runbooks ──────────────────────────────────────────────
+  'service:auto-pilot':
+    - '^auto-pilot/.*'
+  'service:runbook-server':
+    - '^runbook-server/.*'
+  'domain:automation':
+    - '^auto-pilot/.*'
+    - '^runbook-server/.*'
+
+  # ── Deploy / Infra ─────────────────────────────────────────────────────
+  'service:deploy':
     - '^deploy/.*'
-    - '^ops/.*'
-    - '^\.github/.*'

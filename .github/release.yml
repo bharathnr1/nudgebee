@@ -1,51 +1,84 @@
 changelog:
+  exclude:
+    labels:
+      - status:invalid
+      - status:duplicate
+      - status:wontfix
+      - status:blocked
   categories:
+    # Security first — high visibility for any release with sec fixes.
+    - title: 🚨 Security
+      labels:
+        - type:security
+
+    # Community next — celebrate external contributions even if they're
+    # also tagged with a type:* or domain:* label (first-match-wins).
+    - title: 🌱 Community Contributions
+      labels:
+        - community-pr
+
+    # Sync PRs above domain categories. Cherry-pick PRs typically touch
+    # every service path so the labeler stamps them with every domain:*
+    # label — first-match-wins routes them here instead of polluting
+    # individual area sections.
+    - title: 🔄 Cherry-picked from EE
+      labels:
+        - sync
+
+    # ── Domain categories (business-area axis) ───────────────────────────
     - title: 🏕 K8s
       labels:
-        - K8s
-    - title: 🏕 Troubleshooting
-      labels:
-        - Troubleshooting        
-    - title: 🏕 Admin
-      labels:
-        - Admin
-    - title: 🏕 Auth
-      labels:
-        - Auth
-    - title: 🏕 AutoOptimize
-      labels:
-        - AutoOptimize
-        - Recommendation
-    - title: 🏕 AutoRunbook
-      labels:
-        - AutoRunbook
-    - title: 🏕 Notifications
-      labels:
-        - Notifications
-    - title: 🏕 Tickets
-      labels:
-        - Tickets
-    - title: 🏕 Workflow
-      labels:
-        - Workflow        
+        - domain:k8s
     - title: 🏕 Cloud
       labels:
-        - Cloud        
-    - title: 🏕 Security
+        - domain:cloud
+    - title: 🏕 AI / LLM
       labels:
-        - Security
-    - title: 🏕 Performance
+        - domain:llm
+        - domain:agent
+    - title: 🏕 Automation / Workflow
       labels:
-        - Performance
-    - title: 🏕 Ai
+        - domain:automation
+    - title: 🏕 Notifications
       labels:
-        - Ai
-    - title: 🏕 Docs
+        - domain:notifications
+    - title: 🏕 Tickets
       labels:
-        - Docs
-    - title: 🏕 Other
+        - domain:tickets
+    - title: 🏕 Auth
       labels:
-        - feat
-    - title: 👒 Fixes
+        - domain:auth
+    - title: 🏕 FinOps
       labels:
-        - fix
+        - domain:finops
+    - title: 🏕 Troubleshooting
+      labels:
+        - domain:troubleshooting
+    - title: 🏕 UI
+      labels:
+        - domain:ui
+    - title: 🏕 Hasura / Database
+      labels:
+        - domain:hasura
+
+    # ── Type-based fallback (only fires when no domain:* label landed) ──
+    - title: ✨ Features
+      labels:
+        - type:feature
+    - title: 🐛 Bug Fixes
+      labels:
+        - type:bug
+    - title: 🚀 Performance
+      labels:
+        - type:performance
+    - title: 📚 Documentation
+      labels:
+        - type:docs
+    - title: 🔧 Refactoring
+      labels:
+        - type:refactor
+
+    # ── Catchall — anything not categorized still shows up ──────────────
+    - title: 📝 Other Changes
+      labels:
+        - "*"
