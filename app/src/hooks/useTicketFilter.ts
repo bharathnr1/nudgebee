@@ -4,7 +4,7 @@ import { TicketsIcon } from '@assets';
 import { v4 as uuidv4 } from 'uuid';
 import { md5 } from '@lib/encode';
 
-const useTicketFliter = () => {
+const useTicketFilter = () => {
   const [ticketData, setTicketData] = useState<any>({});
   const [isTicketCreateFormOpen, setIsTicketCreateFormOpen] = useState(false);
   const [snackbarData, setSnackbarData] = useState<SnackBarProps>({ message: '', severity: 'success' });
@@ -101,4 +101,4 @@ const useTicketFliter = () => {
   };
 };
 
-export default useTicketFliter;
+export default useTicketFilter;

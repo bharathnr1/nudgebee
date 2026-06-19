@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react';
-import useTicketFliter from '@hooks/useTicketFliter';
+import useTicketFilter from '@hooks/useTicketFilter';
 
 jest.mock('@assets', () => ({ TicketsIcon: 'tickets-icon.svg' }));
 jest.mock('uuid', () => ({ v4: jest.fn(() => 'test-uuid') }));
@@ -8,16 +8,16 @@ jest.mock('src/utils/common', () => ({
   snakeToTitleCase: jest.fn((s) => s.replace(/_/g, ' ')),
 }));
 
-describe('useTicketFliter', () => {
+describe('useTicketFilter', () => {
   it('initialises with correct default state', () => {
-    const { result } = renderHook(() => useTicketFliter());
+    const { result } = renderHook(() => useTicketFilter());
     expect(result.current.ticketData).toEqual({});
     expect(result.current.isTicketCreateFormOpen).toBe(false);
     expect(result.current.isSnackBarOpen).toBe(false);
   });
 
   it('getMenuItem returns a single "Create Ticket" item', () => {
-    const { result } = renderHook(() => useTicketFliter());
+    const { result } = renderHook(() => useTicketFilter());
     const items = result.current.getMenuItem();
     expect(items).toHaveLength(1);
     expect(items[0].label).toBe('Create Ticket');
@@ -25,7 +25,7 @@ describe('useTicketFliter', () => {
   });
 
   it('onMenuClick with id=0 sets ticketData and opens form', () => {
-    const { result } = renderHook(() => useTicketFliter());
+    const { result } = renderHook(() => useTicketFilter());
     const menuItem = { id: 0, label: 'Create Ticket' };
     const data = { id: 'row-1', name: 'Test Issue' };
 
@@ -36,7 +36,7 @@ describe('useTicketFliter', () => {
   });
 
   it('closeTicketCreateForm closes the form', () => {
-    const { result } = renderHook(() => useTicketFliter());
+    const { result } = renderHook(() => useTicketFilter());
     act(() => result.current.onMenuClick({ id: 0 }, {}));
     expect(result.current.isTicketCreateFormOpen).toBe(true);
 
@@ -45,7 +45,7 @@ describe('useTicketFliter', () => {
   });
 
   it('closeSnackBarOpen closes the snackbar', () => {
-    const { result } = renderHook(() => useTicketFliter());
+    const { result } = renderHook(() => useTicketFilter());
     act(() => result.current.handleTicketFailure('Some error'));
     expect(result.current.isSnackBarOpen).toBe(true);
 
@@ -54,7 +54,7 @@ describe('useTicketFliter', () => {
   });
 
   it('handleTicketFailure sets error snackbar and opens it', () => {
-    const { result } = renderHook(() => useTicketFliter());
+    const { result } = renderHook(() => useTicketFilter());
     act(() => result.current.handleTicketFailure('Bad request'));
     expect(result.current.snackbarData.message).toBe('Failed! Bad request.');
     expect(result.current.snackbarData.severity).toBe('error');
@@ -62,13 +62,13 @@ describe('useTicketFliter', () => {
   });
 
   it('getTicketDescription returns empty string for falsy input', () => {
-    const { result } = renderHook(() => useTicketFliter());
+    const { result } = renderHook(() => useTicketFilter());
     expect(result.current.getTicketDescription(null)).toBe('');
     expect(result.current.getTicketDescription(undefined)).toBe('');
   });
 
   it('getTicketDescription flattens and formats object fields', () => {
-    const { result } = renderHook(() => useTicketFliter());
+    const { result } = renderHook(() => useTicketFilter());
     const description = result.current.getTicketDescription({ event_id: 'E1', status: 'open' });
     expect(description).toContain('event id');
     expect(description).toContain('E1');
@@ -77,13 +77,13 @@ describe('useTicketFliter', () => {
   });
 
   it('getTicketDescription flattens nested objects', () => {
-    const { result } = renderHook(() => useTicketFliter());
+    const { result } = renderHook(() => useTicketFilter());
     const description = result.current.getTicketDescription({ outer: { inner_key: 'value' } });
     expect(description).toContain('value');
   });
 
   it('getTicketReferenceId returns md5 hash when data and stream labels present', () => {
-    const { result } = renderHook(() => useTicketFliter());
+    const { result } = renderHook(() => useTicketFilter());
     const ticketData = {
       data: 'log message',
       stream: { labels: { app: 'myapp', container: 'mycontainer', namespace: 'default' } },
@@ -93,13 +93,13 @@ describe('useTicketFliter', () => {
   });
 
   it('getTicketReferenceId returns uuid when data or stream is missing', () => {
-    const { result } = renderHook(() => useTicketFliter());
+    const { result } = renderHook(() => useTicketFilter());
     const refId = result.current.getTicketReferenceId({});
     expect(refId).toBe('test-uuid');
   });
 
   it('handleTicketSuccess does not throw', () => {
-    const { result } = renderHook(() => useTicketFliter());
+    const { result } = renderHook(() => useTicketFilter());
     expect(() => result.current.handleTicketSuccess()).not.toThrow();
   });
 });
