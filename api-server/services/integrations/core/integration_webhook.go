@@ -716,9 +716,9 @@ func convertWebhookEventToEvent(e EventIncomingWebhook, tenantId, accountId, sou
 		status = eventtypes.EventStatusFiring
 	}
 
-	priortiy := e.Investigation.Severity
-	if priortiy == "" {
-		priortiy = eventtypes.EventPriorityLow
+	priority := e.Investigation.Severity
+	if priority == "" {
+		priority = eventtypes.EventPriorityLow
 	}
 
 	return eventtypes.Event{
@@ -732,7 +732,7 @@ func convertWebhookEventToEvent(e EventIncomingWebhook, tenantId, accountId, sou
 		Failure:          "",
 		FindingType:      "issue",
 		Category:         "issue",
-		Priority:         priortiy,
+		Priority:         priority,
 		SubjectType:      e.EventSubjectKind,
 		SubjectName:      e.EventSubjectName,
 		SubjectNamespace: e.EventSubjectNamespace,
