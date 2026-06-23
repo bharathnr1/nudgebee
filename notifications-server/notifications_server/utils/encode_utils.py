@@ -4,6 +4,7 @@ from decimal import Decimal
 import enum
 import json
 import logging
+from typing import Any, Callable
 import uuid
 
 from sqlalchemy import inspect
@@ -12,6 +13,9 @@ from notifications_server.exceptions.exceptions import Err
 
 LOG = logging.getLogger(__name__)
 tp_executor = ThreadPoolExecutor(15)
+
+MIN_PORT = 1
+MAX_PORT = 65535
 
 
 class ModelEncoder(json.JSONEncoder):
@@ -39,11 +43,11 @@ class ModelEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-def gen_id():
+def gen_id() -> str:
     return str(uuid.uuid4())
 
 
-def singleton(class_):
+def singleton(class_: type) -> Callable[..., Any]:
     instances = {}
 
     def get_instance(*args, **kwargs):
@@ -54,15 +58,13 @@ def singleton(class_):
     return get_instance
 
 
-def as_dict(obj):
+def as_dict(obj: Any) -> dict:
     return {c.key: getattr(obj, c.key) for c in inspect(obj).mapper.column_attrs}
 
 
-def is_valid_port(value):
+def is_valid_port(value: Any) -> bool:
     try:
         port = int(value)
     except (ValueError, TypeError):
         return False
-    if 1 <= port <= 65535:
-        return True
-    return False
+    return MIN_PORT <= port <= MAX_PORT
