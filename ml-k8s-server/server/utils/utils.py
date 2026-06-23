@@ -117,7 +117,7 @@ def set_metrics_exporter() -> None:
         else:
             if not end_point.endswith("/v1/metrics"):
                 end_point += "/v1/metrics"
-            from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
+            from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter  # type: ignore
 
             otlp_metrics_exporter = OTLPMetricExporter(endpoint=end_point, timeout=5)
         metric_reader = PeriodicExportingMetricReader(otlp_metrics_exporter)
