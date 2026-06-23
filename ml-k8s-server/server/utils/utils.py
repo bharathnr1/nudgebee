@@ -268,7 +268,7 @@ def get_prediction_duration(account_id: str) -> int:
             for row in result:
                 return int(row[0])
     except Exception as e:
-        logger.warning(f"Failed to get prediction duration from DB fro account:{account_id}, {e}")
+        logger.warning(f"Failed to get prediction duration from DB for account:{account_id}, {e}")
     return int(MetricsServerConfigs.duration)
 
 
