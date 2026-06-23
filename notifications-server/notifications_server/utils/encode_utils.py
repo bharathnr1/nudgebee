@@ -4,6 +4,7 @@ from decimal import Decimal
 import enum
 import json
 import logging
+import threading
 from typing import Any, Callable
 import uuid
 
@@ -49,10 +50,13 @@ def gen_id() -> str:
 
 def singleton(class_: type) -> Callable[..., Any]:
     instances = {}
+    lock = threading.Lock()
 
     def get_instance(*args, **kwargs):
         if class_ not in instances:
-            instances[class_] = class_(*args, **kwargs)
+            with lock:
+                if class_ not in instances:
+                    instances[class_] = class_(*args, **kwargs)
         return instances[class_]
 
     return get_instance
