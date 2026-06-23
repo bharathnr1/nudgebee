@@ -67,8 +67,11 @@ def as_dict(obj: Any) -> dict:
 
 
 def is_valid_port(value: Any) -> bool:
+    # Reject booleans (which int() would coerce to 0/1) and any non-int/str types.
+    if isinstance(value, bool) or not isinstance(value, (int, str)):
+        return False
     try:
         port = int(value)
-    except (ValueError, TypeError):
+    except ValueError:
         return False
     return MIN_PORT <= port <= MAX_PORT
