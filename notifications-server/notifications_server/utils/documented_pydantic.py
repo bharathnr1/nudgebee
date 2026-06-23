@@ -76,10 +76,7 @@ class DocumentedModel(BaseModel):
             cls.__update_fields_from_docstring(docs)
 
     @classmethod
-    # NOTE: intentionally left unannotated — adding a return type makes mypy check this
-    # body and surfaces a pre-existing json_schema_extra union-indexing issue (FieldInfo
-    # .json_schema_extra is dict | Callable | None), which is out of scope for a type-hint pass.
-    def __update_fields_from_docstring(cls, docstring):
+    def __update_fields_from_docstring(cls, docstring: str) -> None:
         """
         Updates pydantic fields according to the docstring so that:
 
@@ -98,9 +95,12 @@ class DocumentedModel(BaseModel):
 
             f: FieldInfo = cls.model_fields[doc_field.field_target]
             if doc_field.field_type == "example":
-                existing = f.json_schema_extra or {}
-                existing["example"] = cls.__parse_example(doc_field.field_value)
-                f.json_schema_extra = existing
+                # json_schema_extra is dict | Callable | None; narrow to dict
+                # before indexing (also avoids a TypeError if it's a callable).
+                if f.json_schema_extra is None:
+                    f.json_schema_extra = {}
+                if isinstance(f.json_schema_extra, dict):
+                    f.json_schema_extra["example"] = cls.__parse_example(doc_field.field_value)
             if doc_field.field_type == "var":
                 if f.description:
                     logging.warning(
