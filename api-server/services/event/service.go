@@ -2279,11 +2279,11 @@ func RegisterEventProcessor(name string, processor func(ctx *security.RequestCon
 func PostProcessEvent(ctx *security.RequestContext, newEvent map[string]any) {
 
 	if newEvent["priority"] == nil {
-		newEvent["priority"] = EventPriortiyInfo
+		newEvent["priority"] = EventPriorityInfo
 	}
 
 	// use string as rest of the system is assuming this to be string
-	if priorityE, ok := newEvent["priority"].(EventPriortiy); ok {
+	if priorityE, ok := newEvent["priority"].(EventPriority); ok {
 		newEvent["priority"] = string(priorityE)
 	}
 
@@ -2350,7 +2350,7 @@ func UpdateEvent(ctx *security.RequestContext, request models.UpdateEventRequest
 		Description:      *r.Description,
 		Source:           *r.Source,
 		AggregationKey:   *r.AggregationKey,
-		Priority:         EventPriortiy(*r.Priority),
+		Priority:         EventPriority(*r.Priority),
 		SubjectType:      subjectType,
 		SubjectName:      subjectName,
 		SubjectNamespace: subjectNamespace,
