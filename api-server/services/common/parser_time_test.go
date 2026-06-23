@@ -85,6 +85,29 @@ func TestParseTimeValue(t *testing.T) {
 		}
 	})
 
+	t.Run("string layouts", func(t *testing.T) {
+		// Exercise every layout in the `layouts` slice (parsed in UTC).
+		layoutTests := []struct {
+			name string
+			in   string
+			want time.Time
+		}{
+			{"RFC3339Nano", "2021-01-01T00:00:00.123456789Z", time.Date(2021, 1, 1, 0, 0, 0, 123456789, time.UTC)},
+			{"RFC3339 offset no colon", "2021-01-01T00:00:00+0000", want},
+			{"ISO8601 fractional no tz", "2021-01-01T00:00:00.5", time.Date(2021, 1, 1, 0, 0, 0, 500000000, time.UTC)},
+			{"ISO8601 no tz", "2021-01-01T00:00:00", want},
+			{"time only", "15:04:05", time.Date(0, 1, 1, 15, 4, 5, 0, time.UTC)},
+		}
+		for _, tt := range layoutTests {
+			t.Run(tt.name, func(t *testing.T) {
+				got, err := ParseTimeValue(tt.in)
+				if err != nil || !got.Equal(tt.want) {
+					t.Errorf("ParseTimeValue(%q) = %v, %v; want %v, nil", tt.in, got, err, tt.want)
+				}
+			})
+		}
+	})
+
 	t.Run("numeric types", func(t *testing.T) {
 		for _, v := range []any{int(1609459200), int64(1609459200), float64(1609459200)} {
 			got, err := ParseTimeValue(v)
@@ -98,6 +121,19 @@ func TestParseTimeValue(t *testing.T) {
 		got, err := ParseTimeValue(stdjson.Number("1609459200"))
 		if err != nil || !got.Equal(want) {
 			t.Errorf("got %v, %v; want %v, nil", got, err, want)
+		}
+	})
+
+	t.Run("json.Number float falls back to float path", func(t *testing.T) {
+		got, err := ParseTimeValue(stdjson.Number("1609459200.0"))
+		if err != nil || !got.Equal(want) {
+			t.Errorf("got %v, %v; want %v, nil", got, err, want)
+		}
+	})
+
+	t.Run("json.Number non-numeric errors", func(t *testing.T) {
+		if _, err := ParseTimeValue(stdjson.Number("not-a-number")); err == nil {
+			t.Error("expected error for non-numeric json.Number, got nil")
 		}
 	})
 
