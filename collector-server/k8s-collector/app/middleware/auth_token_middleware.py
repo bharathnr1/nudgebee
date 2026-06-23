@@ -142,7 +142,7 @@ class ErrorCatcher(BaseController):
         try:
             func_return = self.func(*args, **kwargs)
         except HTTPException as exc:
-            print(exc)
+            logging.warning(exc)
             raise exc
         except Exception as e:
             logging.exception(e)
