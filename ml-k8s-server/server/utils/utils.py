@@ -25,7 +25,7 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 # HTTP status codes that warrant retrying an outbound request.
-RETRY_STATUS_CODES = [429, 500, 502, 503, 504]
+RETRY_STATUS_CODES = (429, 500, 502, 503, 504)
 
 default_health_check_endpoints = [
     "/actuator/health",
