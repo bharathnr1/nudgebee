@@ -63,6 +63,15 @@ class TestSlackMarkdownToGenericMarkdown:
         assert Transformer.slack_markdown_to_generic_markdown("<!channel>") == "@channel"
         assert Transformer.slack_markdown_to_generic_markdown("<!here>") == "@here"
 
+    def test_bare_url_conversion(self):
+        assert (
+            Transformer.slack_markdown_to_generic_markdown("<http://example.com>")
+            == "[http://example.com](http://example.com)"
+        )
+
+    def test_none_input_returns_none(self):
+        assert Transformer.slack_markdown_to_generic_markdown(None) is None
+
 
 class TestSmartTruncateJson:
     def test_primitive_value(self):
@@ -71,6 +80,15 @@ class TestSmartTruncateJson:
     def test_non_json_string_falls_back_verbatim(self):
         assert Transformer.smart_truncate_json("not json") == "not json"
 
-    def test_dict_returns_string(self):
-        out = Transformer.smart_truncate_json({"key": "value"})
-        assert isinstance(out, str) and "key" in out
+    def test_dict_returns_serialized_json(self):
+        assert Transformer.smart_truncate_json({"key": "value"}) == '{"key": "value"}'
+
+    def test_dict_truncation(self):
+        assert Transformer.smart_truncate_json({"a": 1, "b": 2}, max_length=60) == '{"a": 1, ... 1 more fields}'
+
+    def test_list_serialization_and_truncation(self):
+        assert Transformer.smart_truncate_json([1, 2, 3]) == "[1, 2, 3]"
+        assert Transformer.smart_truncate_json([1, 2, 3, 4, 5, 6]) == "[1, 2, 3, 4, 5... 1 more items]"
+
+    def test_valid_json_string_is_parsed_then_serialized(self):
+        assert Transformer.smart_truncate_json('{"key": "value"}') == '{"key": "value"}'
