@@ -41,15 +41,15 @@ def setup_logger() -> None:
                 logging.config.dictConfig(config)
                 logging.info("Logging configuration loaded successfully.")
         except json.JSONDecodeError as e:
-            logging.warn(f"Error decoding JSON from file: {e}")
+            logging.warning(f"Error decoding JSON from file: {e}")
             logging.info("Loading default logging configuration.")
             load_default_config()
         except Exception as e:
-            logging.warn(f"Error reading the logging configuration file: {e}")
+            logging.warning(f"Error reading the logging configuration file: {e}")
             logging.info("Loading default logging configuration.")
             load_default_config()
     else:
-        logging.warn(
+        logging.warning(
             "LOGGING_CONFIG_FILE environment variable not set. Loading default configuration."
         )
         load_default_config()
@@ -76,7 +76,7 @@ def load_default_config():
             logging.info("Default logging configuration loaded successfully.")
     except Exception as e:
         logging.basicConfig(level=logging.INFO)
-        logging.warn(f"Failed to load default logging config: {e}")
+        logging.warning(f"Failed to load default logging config: {e}")
 
 
 def get_log_config_path():
@@ -85,7 +85,7 @@ def get_log_config_path():
     if not config_file_path:
         basedir = os.path.abspath(os.path.dirname(__file__))
         config_file_path = os.path.join(basedir, "logging.json")
-        logging.warn(
+        logging.warning(
             f"Logging file path : {config_file_path} (default used due to env var not set)"
         )
     return config_file_path
