@@ -44,8 +44,10 @@ def setup_logger() -> None:
             logging.warning(f"Error decoding JSON from file: {e}")
             logging.info("Loading default logging configuration.")
             load_default_config()
-        except Exception as e:
-            logging.warning(f"Error reading the logging configuration file: {e}")
+        except Exception:
+            logging.warning(
+                "Error reading the logging configuration file", exc_info=True
+            )
             logging.info("Loading default logging configuration.")
             load_default_config()
     else:
@@ -74,9 +76,9 @@ def load_default_config():
                     lgr["level"] = env_level
             logging.config.dictConfig(config)
             logging.info("Default logging configuration loaded successfully.")
-    except Exception as e:
+    except Exception:
         logging.basicConfig(level=logging.INFO)
-        logging.warning(f"Failed to load default logging config: {e}")
+        logging.warning("Failed to load default logging config", exc_info=True)
 
 
 def get_log_config_path():
