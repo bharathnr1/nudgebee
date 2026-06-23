@@ -72,3 +72,10 @@ func TestMarshalAndGzipJSON_Struct(t *testing.T) {
 		t.Errorf("round-trip mismatch: got %+v, want %+v", out, in)
 	}
 }
+
+func TestMarshalAndGzipJSON_MarshalError(t *testing.T) {
+	// Channels can't be marshaled to JSON; the error must propagate.
+	if _, err := MarshalAndGzipJSON(make(chan int)); err == nil {
+		t.Error("expected error marshaling an unsupported type (channel), got nil")
+	}
+}
