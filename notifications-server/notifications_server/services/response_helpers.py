@@ -11,7 +11,7 @@ def success_response(
     message_ts: Optional[str] = None,
     team_id: Optional[str] = None,
     **extra: Any,
-) -> dict:
+) -> dict[str, Any]:
     return PlatformResponse(
         platform=platform,
         status="success",
@@ -22,7 +22,7 @@ def success_response(
     ).model_dump(exclude_none=True)
 
 
-def failed_response(platform: str, reason: Optional[str] = None, **extra: Any) -> dict:
+def failed_response(platform: str, reason: Optional[str] = None, **extra: Any) -> dict[str, Any]:
     return PlatformResponse(
         platform=platform,
         status="failed",
@@ -31,7 +31,7 @@ def failed_response(platform: str, reason: Optional[str] = None, **extra: Any) -
     ).model_dump(exclude_none=True)
 
 
-def system_response(status: str, reason: Optional[str] = None) -> dict:
+def system_response(status: str, reason: Optional[str] = None) -> dict[str, Any]:
     return PlatformResponse(
         platform="system",
         status=status,
