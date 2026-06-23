@@ -11,6 +11,8 @@ func TestIsValidK8sDNSLabel(t *testing.T) {
 		{name: "simple lowercase", in: "myapp", want: true},
 		{name: "with hyphen and digits", in: "my-app-1", want: true},
 		{name: "single char", in: "a", want: true},
+		{name: "exactly 63 chars", in: "012345678901234567890123456789012345678901234567890123456789012", want: true},
+		{name: "over 63 chars rejected", in: "0123456789012345678901234567890123456789012345678901234567890123", want: false},
 		{name: "uppercase rejected", in: "MyApp", want: false},
 		{name: "leading hyphen rejected", in: "-app", want: false},
 		{name: "trailing hyphen rejected", in: "app-", want: false},
