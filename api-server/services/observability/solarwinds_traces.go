@@ -183,14 +183,29 @@ func (s *SolarWindsTraceSource) QueryGroupedTraces(ctx *security.RequestContext,
 	filter := buildSwTraceFilter(req.QueryRequest.Where)
 	reqCtx := ctx.GetContext()
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				avgCh <- fetchResult{err: fmt.Errorf("panic in SolarWinds AVG fetch: %v", r)}
+			}
+		}()
 		g, err := s.fetchMeasurements(reqCtx, apiToken, baseURL, from, to, "AVG", filter)
 		avgCh <- fetchResult{g, err}
 	}()
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				cntCh <- fetchResult{err: fmt.Errorf("panic in SolarWinds COUNT fetch: %v", r)}
+			}
+		}()
 		g, err := s.fetchMeasurements(reqCtx, apiToken, baseURL, from, to, "COUNT", filter)
 		cntCh <- fetchResult{g, err}
 	}()
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				maxCh <- fetchResult{err: fmt.Errorf("panic in SolarWinds MAX fetch: %v", r)}
+			}
+		}()
 		g, err := s.fetchMeasurements(reqCtx, apiToken, baseURL, from, to, "MAX", filter)
 		maxCh <- fetchResult{g, err}
 	}()
