@@ -86,10 +86,17 @@ func (s *SplunkLogSource) QueryLogs(ctx *security.RequestContext, req FetchLogRe
 // returned when dynamic discovery yields nothing or errors, so the label list
 // never regresses to empty.
 var splunkO11yFallbackLogLabelNames = []string{
-	"message", "severity", "timestamp",
-	"kubernetes.namespace.name", "kubernetes.pod.name", "kubernetes.container.name",
-	"kubernetes.node.name", "host.name", "service.name",
-	"trace_id", "span_id",
+	"host.name",
+	"kubernetes.container.name",
+	"kubernetes.namespace.name",
+	"kubernetes.node.name",
+	"kubernetes.pod.name",
+	"message",
+	"service.name",
+	"severity",
+	"span_id",
+	"timestamp",
+	"trace_id",
 }
 
 func splunkO11yFallbackLogLabels() []OutputLogLabel {
@@ -105,9 +112,10 @@ func splunkO11yFallbackLogLabels() []OutputLogLabel {
 // Fields are discovered dynamically by sampling recent logs and collecting the
 // distinct attribute keys, so custom OTel attributes a user indexes in Log
 // Observer (e.g. service.version, http.status_code) show up in autocomplete —
-// consistent with the Elasticsearch/Loki/Dynatrace sources. It falls back to the
-// well-known static field set whenever config lookup or the sample query fails,
-// or the sample yields no fields, so the list never regresses to empty.
+// consistent with the Elasticsearch/Loki/Dynatrace sources. Discovered fields
+// are always merged with the well-known static set, so standard fields never
+// disappear on a sparse sample, and the list falls back to just the static set
+// whenever config lookup or the sample query fails.
 func (s *SplunkLogSource) QueryLabels(ctx *security.RequestContext, req FetchLogLabelRequest) ([]OutputLogLabel, error) {
 	cfg, err := s.getConfigs(ctx, req.AccountId)
 	if err != nil {
@@ -122,25 +130,29 @@ func (s *SplunkLogSource) QueryLabels(ctx *security.RequestContext, req FetchLog
 		return splunkO11yFallbackLogLabels(), nil
 	}
 
-	labels := dedupeO11yFieldLabels(entries)
-	if len(labels) == 0 {
-		return splunkO11yFallbackLogLabels(), nil
-	}
-	return labels, nil
+	return dedupeO11yFieldLabels(entries), nil
 }
 
-// dedupeO11yFieldLabels collects the distinct attribute keys across the sampled
-// log entries, sorted for stable output.
+// dedupeO11yFieldLabels returns the union of the distinct attribute keys across
+// the sampled log entries and the well-known fallback fields, sorted for stable
+// output. Merging the fallback set guarantees standard fields stay in the list
+// even when the sample is sparse, while still surfacing custom attributes.
 func dedupeO11yFieldLabels(entries []integrations.O11yLogEntry) []OutputLogLabel {
 	seen := make(map[string]bool)
 	names := make([]string, 0)
+	add := func(k string) {
+		if k != "" && !seen[k] {
+			seen[k] = true
+			names = append(names, k)
+		}
+	}
 	for _, e := range entries {
 		for k := range e.Attributes {
-			if k != "" && !seen[k] {
-				seen[k] = true
-				names = append(names, k)
-			}
+			add(k)
 		}
+	}
+	for _, f := range splunkO11yFallbackLogLabelNames {
+		add(f)
 	}
 	sort.Strings(names)
 

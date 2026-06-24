@@ -2,6 +2,7 @@ package observability
 
 import (
 	"errors"
+	"sort"
 	"testing"
 
 	"nudgebee/services/integrations"
@@ -24,8 +25,8 @@ func okConfigs(*security.RequestContext, string) (integrations.SplunkO11yConnCon
 }
 
 func TestSplunkQueryLabels_DynamicDiscovery(t *testing.T) {
-	// A custom OTel attribute present in the sampled logs must surface, and the
-	// output must be the sorted set of distinct attribute keys.
+	// Custom OTel attributes present in the sampled logs must surface, merged with
+	// the standard fallback fields, in sorted order.
 	s := &SplunkLogSource{
 		GetConfigs: okConfigs,
 		LogSearch: func(integrations.SplunkO11yConnConfig, string, int64, int64, int) ([]integrations.O11yLogEntry, error) {
@@ -38,8 +39,13 @@ func TestSplunkQueryLabels_DynamicDiscovery(t *testing.T) {
 	labels, err := s.QueryLabels(mockRequestContext(), FetchLogLabelRequest{AccountId: "acct-1"})
 	require.NoError(t, err)
 	names := labelNames(labels)
-	assert.Equal(t, []string{"http.status_code", "message", "service.version"}, names)
+	// Custom attributes are discovered...
 	assert.Contains(t, names, "service.version", "custom OTel attribute must be discovered dynamically")
+	assert.Contains(t, names, "http.status_code", "custom OTel attribute must be discovered dynamically")
+	// ...and standard fallback fields are still present (no regression on a sparse sample).
+	assert.Contains(t, names, "kubernetes.pod.name", "standard fallback field must remain present")
+	assert.Contains(t, names, "trace_id", "standard fallback field must remain present")
+	assert.True(t, sort.StringsAreSorted(names), "labels must be returned in sorted order")
 }
 
 func TestSplunkQueryLabels_FallbackOnEmptySample(t *testing.T) {
@@ -82,10 +88,23 @@ func TestSplunkQueryLabels_FallbackOnConfigError(t *testing.T) {
 	assert.Equal(t, splunkO11yFallbackLogLabelNames, labelNames(labels))
 }
 
-func TestDedupeO11yFieldLabels_DistinctSorted(t *testing.T) {
+func TestDedupeO11yFieldLabels_DistinctSortedMergedWithFallback(t *testing.T) {
 	entries := []integrations.O11yLogEntry{
-		{Attributes: map[string]any{"b": 1, "a": 2}},
-		{Attributes: map[string]any{"a": 3, "c": 4, "": "skip-empty-key"}},
+		{Attributes: map[string]any{"b_custom": 1, "a_custom": 2}},
+		{Attributes: map[string]any{"a_custom": 3, "c_custom": 4, "": "skip-empty-key"}},
 	}
-	assert.Equal(t, []string{"a", "b", "c"}, labelNames(dedupeO11yFieldLabels(entries)))
+	names := labelNames(dedupeO11yFieldLabels(entries))
+	// Distinct custom keys present, empty key skipped...
+	assert.Contains(t, names, "a_custom")
+	assert.Contains(t, names, "b_custom")
+	assert.Contains(t, names, "c_custom")
+	assert.NotContains(t, names, "")
+	// ...merged with the fallback set, sorted, no duplicates.
+	assert.Subset(t, names, splunkO11yFallbackLogLabelNames)
+	assert.True(t, sort.StringsAreSorted(names), "labels must be sorted")
+	seen := map[string]bool{}
+	for _, n := range names {
+		assert.False(t, seen[n], "no duplicate label %q", n)
+		seen[n] = true
+	}
 }
