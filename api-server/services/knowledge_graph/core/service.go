@@ -1326,10 +1326,16 @@ func (s *Service) SaveEdges(edges []*DbEdge, nodes []*DbNode, syncVersion int64)
 		edge.SourceNodeID = sourceID
 		edge.DestinationNodeID = destID
 
-		// Create composite key for deduplication
-		compositeKey := fmt.Sprintf("%s:%s:%s",
+		// Create composite key for deduplication. RelationshipType must be part
+		// of the key — the canonical edge dedup constraint is
+		// (source, destination, relationship_type, account, tenant). Two edges
+		// between the same nodes with different relationship types are distinct;
+		// omitting the type here merged them and silently dropped one before the
+		// upsert. (account is already encoded in the source/dest node UUIDs.)
+		compositeKey := fmt.Sprintf("%s:%s:%s:%s",
 			edge.SourceNodeID,
 			edge.DestinationNodeID,
+			edge.RelationshipType,
 			edge.TenantID)
 
 		if existing, exists := edgeMap[compositeKey]; exists {
