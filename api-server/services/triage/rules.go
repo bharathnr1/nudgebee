@@ -57,7 +57,6 @@ func CheckTriageRules(ctx context.Context, db *sqlx.DB, event *models.Event) (*T
 				suppressionResult = applySuppressionRule(&rule)
 				suppressionRuleID = rule.ID
 				// Update match count only for the winning rule
-				go updateRuleMatchCount(ctx, db, rule.ID)
 				matches = append(matches, pendingMatch{rule.ID, rule.RuleType, rule.Action})
 				slog.InfoContext(ctx, "Suppression rule matched",
 					"event_id", event.Id,
@@ -74,7 +73,6 @@ func CheckTriageRules(ctx context.Context, db *sqlx.DB, event *models.Event) (*T
 			} else {
 				scoreAdjustment.Adjustment += adj.Adjustment
 			}
-			go updateRuleMatchCount(ctx, db, rule.ID)
 			matches = append(matches, pendingMatch{rule.ID, rule.RuleType, rule.Action})
 			slog.InfoContext(ctx, "Scoring rule matched",
 				"event_id", event.Id,
@@ -87,7 +85,6 @@ func CheckTriageRules(ctx context.Context, db *sqlx.DB, event *models.Event) (*T
 				autoClassification = applyClassificationRule(&rule)
 				classificationRuleID = rule.ID
 				// Update match count only for the winning rule
-				go updateRuleMatchCount(ctx, db, rule.ID)
 				matches = append(matches, pendingMatch{rule.ID, rule.RuleType, rule.Action})
 				slog.InfoContext(ctx, "Classification rule matched",
 					"event_id", event.Id,
@@ -104,6 +101,18 @@ func CheckTriageRules(ctx context.Context, db *sqlx.DB, event *models.Event) (*T
 			slog.WarnContext(ctx, "Failed to insert rule match records", "error", err, "event_id", event.Id)
 			// Non-fatal: don't fail triage on tracking error
 		}
+	}
+
+	// Bump match_count for the winning rules. Previously each match spawned its
+	// own unbounded `go updateRuleMatchCount`; under a burst of matching events
+	// that exhausted the DB connection pool and stalled processing. Dispatch a
+	// single bounded, non-blocking update for all winning rules instead.
+	if len(matches) > 0 {
+		ruleIDs := make([]string, len(matches))
+		for i, m := range matches {
+			ruleIDs[i] = m.ruleID
+		}
+		dispatchRuleMatchCountUpdates(ctx, db, ruleIDs)
 	}
 
 	// Return nil if no rules matched
@@ -627,6 +636,48 @@ func updateEventNBStatusFromEvent(ctx context.Context, db *sqlx.DB, eventID, nbS
 
 	_, err := db.ExecContext(ctx, query, nbStatus, eventID)
 	return err
+}
+
+// ruleMatchUpdateMaxConcurrency bounds how many rule match-count updates run
+// concurrently, so a burst of matching events can't spawn unbounded goroutines
+// and exhaust the DB connection pool.
+const ruleMatchUpdateMaxConcurrency = 16
+
+// ruleMatchUpdateSem is the concurrency limiter for match-count updates.
+var ruleMatchUpdateSem = make(chan struct{}, ruleMatchUpdateMaxConcurrency)
+
+// ruleMatchCountUpdate is the function used to persist a single rule's match
+// count. It's a package var so tests can substitute a fake without a DB.
+var ruleMatchCountUpdate = updateRuleMatchCount
+
+// dispatchRuleMatchCountUpdates asynchronously bumps match_count for the given
+// winning rule IDs, bounded to ruleMatchUpdateMaxConcurrency concurrent updates.
+// match_count is a non-critical statistic, so when the bound is saturated the
+// update is dropped (and logged) rather than blocking the event pipeline — the
+// opposite failure mode of the previous unbounded `go updateRuleMatchCount`,
+// which exhausted the DB pool under load.
+func dispatchRuleMatchCountUpdates(ctx context.Context, db *sqlx.DB, ruleIDs []string) {
+	if len(ruleIDs) == 0 {
+		return
+	}
+	// Snapshot the package vars so the spawned goroutine is self-contained and
+	// doesn't read shared state after launch.
+	sem := ruleMatchUpdateSem
+	update := ruleMatchCountUpdate
+	select {
+	case sem <- struct{}{}:
+		go func() {
+			defer func() { <-sem }()
+			// Detached context: the request ctx may be cancelled once
+			// CheckTriageRules returns; these are fire-and-forget stat updates.
+			for _, id := range ruleIDs {
+				update(context.Background(), db, id)
+			}
+		}()
+	default:
+		slog.WarnContext(ctx, "triage: rule match-count update skipped (update concurrency saturated)",
+			"rules", len(ruleIDs))
+	}
 }
 
 // updateRuleMatchCount increments the match count for a rule
