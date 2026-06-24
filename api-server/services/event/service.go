@@ -749,13 +749,19 @@ func ApplyEventResolution(ctx *security.RequestContext, query EventRecommendatio
 			findings, isArr := v.([]any)
 			if isArr && len(findings) > 0 {
 				firstFinding, isMap := findings[0].(map[string]any)
-				if evidenceRaw, ok := firstFinding["evidence"]; isMap && ok {
+				if !isMap {
+					return EventRecommendationApplyResponse{}, fmt.Errorf("resolution: first finding is not an object")
+				}
+				if evidenceRaw, ok := firstFinding["evidence"]; ok {
 					evidence, isArr := evidenceRaw.([]any)
 					if isArr && len(evidence) > 0 {
 						data := []map[string]any{}
 						firstEvidence, isMap := evidence[0].(map[string]any)
+						if !isMap {
+							return EventRecommendationApplyResponse{}, fmt.Errorf("resolution: first evidence is not an object")
+						}
 						evidenceDataStr, isStr := firstEvidence["data"].(string)
-						if !isMap || !isStr {
+						if !isStr {
 							return EventRecommendationApplyResponse{}, fmt.Errorf("resolution: evidence data missing or not a string")
 						}
 						err := common.UnmarshalJson([]byte(evidenceDataStr), &data)
