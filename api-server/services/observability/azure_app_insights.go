@@ -262,7 +262,7 @@ func azureLabelValuesFromResponse(resp AzureResponse) []string {
 		return labelValues
 	}
 	for _, row := range resp.Tables[0].Rows {
-		if len(row) == 0 {
+		if len(row) == 0 || row[0] == nil {
 			continue
 		}
 		labelValues = append(labelValues, fmt.Sprintf("%v", row[0]))

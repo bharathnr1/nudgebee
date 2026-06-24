@@ -42,7 +42,8 @@ func TestAzureLabelValuesFromResponse(t *testing.T) {
 	}
 	resp := AzureResponse{Tables: []Table{{Rows: [][]any{
 		{"GET /a"},
-		{}, // empty row must be skipped, not panic
+		{},    // empty row must be skipped, not panic
+		{nil}, // nil first value must be skipped, not stringified to "<nil>"
 		{"POST /b", "ignored-second-col"},
 	}}}}
 	got := azureLabelValuesFromResponse(resp)
