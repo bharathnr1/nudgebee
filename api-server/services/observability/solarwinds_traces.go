@@ -356,6 +356,11 @@ func (s *SolarWindsTraceSource) fetchMeasurements(ctx context.Context, apiToken,
 
 	var allGroupings []swMeasurementGrouping
 	for page := 0; page < swMaxPages; page++ {
+		// Bail out before each page if the caller has already cancelled, to avoid
+		// issuing further HTTP requests for an aborted request.
+		if err := ctx.Err(); err != nil {
+			return nil, fmt.Errorf("SolarWinds measurements pagination cancelled: %w", err)
+		}
 		body, statusCode, err := integrations.DoSolarWindsGETWithContext(ctx, apiToken, baseURL, path, params)
 		if err != nil {
 			return nil, fmt.Errorf("request to SolarWinds measurements API failed: %w", err)

@@ -9,7 +9,12 @@ import (
 	"nudgebee/services/common"
 	"nudgebee/services/integrations/core"
 	"nudgebee/services/security"
+	"time"
 )
+
+// solarWindsDefaultGETTimeout bounds context-less SolarWinds GETs so a
+// non-responsive API can't hang the caller indefinitely.
+const solarWindsDefaultGETTimeout = 30 * time.Second
 
 const (
 	SolarWindsConfigAPIToken   = "api_token"
@@ -193,7 +198,9 @@ func SolarWindsAPIBaseURL(dataCenter string) string {
 // DoSolarWindsGET performs an authenticated GET request to the SolarWinds REST API.
 // Returns (body, httpStatusCode, error).
 func DoSolarWindsGET(apiToken, baseURL, path string, params map[string]string) ([]byte, int, error) {
-	return DoSolarWindsGETWithContext(context.Background(), apiToken, baseURL, path, params)
+	ctx, cancel := context.WithTimeout(context.Background(), solarWindsDefaultGETTimeout)
+	defer cancel()
+	return DoSolarWindsGETWithContext(ctx, apiToken, baseURL, path, params)
 }
 
 // DoSolarWindsGETWithContext is DoSolarWindsGET with caller-supplied context, so
