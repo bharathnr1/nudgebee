@@ -118,22 +118,33 @@ func (k *kuberntesAdapter) ApplyRecommendation(ctx AccountAdapterContext, reques
 			if resourceData["cpu"] == nil && resourceData["memory"] == nil {
 				continue
 			}
+			// Resolve the cpu/memory sub-maps once with comma-ok. Reads from a nil
+			// map are safe in Go, so the per-field accesses below can't panic even
+			// when a sub-map is absent or the wrong shape (previously each access
+			// was an unchecked resourceData["cpu"].(map[string]any) assertion).
+			cpuData, _ := resourceData["cpu"].(map[string]any)
+			memData, _ := resourceData["memory"].(map[string]any)
 			ctx.GetLogger().Info(fmt.Sprintf("applying recommendation: %s, %s, %s, %s, %v, %v, %v, %v",
 				resourceMeta["namespace"], resourceMeta["controller"], resourceMeta["controllerKind"],
 				key,
-				resourceData["cpu"].(map[string]any)["request"],
-				resourceData["cpu"].(map[string]any)["limit"],
-				resourceData["memory"].(map[string]any)["request"],
-				resourceData["memory"].(map[string]any)["limit"]))
-			recommendationList := request.Recommendation.Recommendation.Object().(map[string]any)[key].([]any)
+				cpuData["request"],
+				cpuData["limit"],
+				memData["request"],
+				memData["limit"]))
+			recObj, _ := request.Recommendation.Recommendation.Object().(map[string]any)
+			recommendationList, _ := recObj[key].([]any)
 			var cpuAllocated map[string]any
 			var memAllocated map[string]any
 			for i := range recommendationList {
-				value := recommendationList[i].(map[string]any)
-				if value["resource"].(string) == "cpu" && value["allocated"] != nil {
-					cpuAllocated = value["allocated"].(map[string]any)
-				} else if value["resource"].(string) == "memory" && value["allocated"] != nil {
-					memAllocated = value["allocated"].(map[string]any)
+				item, ok := recommendationList[i].(map[string]any)
+				if !ok {
+					continue
+				}
+				resource, _ := item["resource"].(string)
+				if resource == "cpu" && item["allocated"] != nil {
+					cpuAllocated, _ = item["allocated"].(map[string]any)
+				} else if resource == "memory" && item["allocated"] != nil {
+					memAllocated, _ = item["allocated"].(map[string]any)
 				}
 			}
 			allocatedMemRequest := applyMemoryUnit(memAllocated["request"])
@@ -141,23 +152,23 @@ func (k *kuberntesAdapter) ApplyRecommendation(ctx AccountAdapterContext, reques
 			allocatedCpuRequest := applyMemoryUnit(cpuAllocated["request"])
 			allocatedCpuLimit := applyMemoryUnit(cpuAllocated["limit"])
 			annotation := map[string]any{
-				"cpu_request":         resourceData["cpu"].(map[string]any)["request"],
-				"cpu_limit":           resourceData["cpu"].(map[string]any)["limit"],
+				"cpu_request":         cpuData["request"],
+				"cpu_limit":           cpuData["limit"],
 				"prev_cpu_request":    allocatedCpuRequest,
 				"prev_cpu_limit":      allocatedCpuLimit,
-				"memory_request":      resourceData["memory"].(map[string]any)["request"],
-				"memory_limit":        resourceData["memory"].(map[string]any)["limit"],
+				"memory_request":      memData["request"],
+				"memory_limit":        memData["limit"],
 				"prev_memory_request": allocatedMemRequest,
 				"prev_memory_limit":   allocatedMemLimit,
 			}
 			contianerAnnotation := getAnnotationDict(key, annotation)
 			containerAnnotations = append(containerAnnotations, contianerAnnotation)
 			containers = append(containers, map[string]any{
-				"cpu_limit":      resourceData["cpu"].(map[string]any)["limit"],
-				"cpu_request":    resourceData["cpu"].(map[string]any)["request"],
-				"memory_limit":   resourceData["memory"].(map[string]any)["limit"],
+				"cpu_limit":      cpuData["limit"],
+				"cpu_request":    cpuData["request"],
+				"memory_limit":   memData["limit"],
 				"container_name": key,
-				"memory_request": resourceData["memory"].(map[string]any)["request"],
+				"memory_request": memData["request"],
 			})
 		}
 		containerChanges := map[string]any{
