@@ -131,7 +131,10 @@ func (k *kuberntesAdapter) ApplyRecommendation(ctx AccountAdapterContext, reques
 				cpuData["limit"],
 				memData["request"],
 				memData["limit"]))
-			recObj, _ := request.Recommendation.Recommendation.Object().(map[string]any)
+			recObj, isRecMap := request.Recommendation.Recommendation.Object().(map[string]any)
+			if !isRecMap {
+				continue
+			}
 			recommendationList, _ := recObj[key].([]any)
 			var cpuAllocated map[string]any
 			var memAllocated map[string]any
@@ -140,11 +143,18 @@ func (k *kuberntesAdapter) ApplyRecommendation(ctx AccountAdapterContext, reques
 				if !ok {
 					continue
 				}
-				resource, _ := item["resource"].(string)
-				if resource == "cpu" && item["allocated"] != nil {
-					cpuAllocated, _ = item["allocated"].(map[string]any)
-				} else if resource == "memory" && item["allocated"] != nil {
-					memAllocated, _ = item["allocated"].(map[string]any)
+				resource, ok := item["resource"].(string)
+				if !ok {
+					continue
+				}
+				if resource == "cpu" {
+					if allocated, ok := item["allocated"].(map[string]any); ok {
+						cpuAllocated = allocated
+					}
+				} else if resource == "memory" {
+					if allocated, ok := item["allocated"].(map[string]any); ok {
+						memAllocated = allocated
+					}
 				}
 			}
 			allocatedMemRequest := applyMemoryUnit(memAllocated["request"])
