@@ -497,8 +497,18 @@ func (p *GoogleAICacheProvider) ApplyCache(ctx context.Context, req *CacheReques
 	// call. Without this, parallel conversations that miss on the same
 	// account:agent:model key each create a distinct Google AI CachedContent —
 	// duplicate storage cost and orphaned resources under concurrent load (#302).
+	//
+	// singleflight runs the shared function under the *first* caller's context,
+	// so if that caller disconnects/times out, its cancellation would propagate
+	// to every concurrent waiter sharing this cacheKey and fail their cache
+	// creation too. Detach from the initiating request's cancellation and apply
+	// our own bounded timeout — cache creation is worth completing regardless of
+	// which caller triggered it, and the result is shared by all waiters.
+	detachedCtx := context.WithoutCancel(ctx)
+	detachedCtx, cancelCreate := context.WithTimeout(detachedCtx, 5*time.Minute)
+	defer cancelCreate()
 	created, errCreate, _ := p.createGroup.Do(cacheKey, func() (interface{}, error) {
-		return p.createCache(ctx, req, cacheableMessages, contentHash, cacheKey, tokenCount)
+		return p.createCache(detachedCtx, req, cacheableMessages, contentHash, cacheKey, tokenCount)
 	})
 	var cacheInfoResult *CacheInfo
 	if errCreate == nil {
