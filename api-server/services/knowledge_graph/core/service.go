@@ -1332,11 +1332,7 @@ func (s *Service) SaveEdges(edges []*DbEdge, nodes []*DbNode, syncVersion int64)
 		// between the same nodes with different relationship types are distinct;
 		// omitting the type here merged them and silently dropped one before the
 		// upsert. (account is already encoded in the source/dest node UUIDs.)
-		compositeKey := fmt.Sprintf("%s:%s:%s:%s",
-			edge.SourceNodeID,
-			edge.DestinationNodeID,
-			edge.RelationshipType,
-			edge.TenantID)
+		compositeKey := edge.SourceNodeID + ":" + edge.DestinationNodeID + ":" + string(edge.RelationshipType) + ":" + edge.TenantID
 
 		if existing, exists := edgeMap[compositeKey]; exists {
 			// Merge properties if the edge already exists
