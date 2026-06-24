@@ -52,8 +52,7 @@ def decrypt_value(encrypted_value: str) -> str:
 def get_confluence_integrations(cloud_account_id):
     try:
         with engine.connect() as connection:
-            query = text(
-                """
+            query = text("""
                 SELECT i.id, ica.cloud_account_id, icv.name, icv.value
                 FROM integrations i
                 JOIN integration_config_values icv
@@ -62,8 +61,7 @@ def get_confluence_integrations(cloud_account_id):
                 ON i.id = ica.integration_id
                 WHERE i.type = 'confluence'
                 AND ica.cloud_account_id = :ac_id
-                """
-            )
+                """)
             params = {"ac_id": cloud_account_id}
             result = connection.execute(query, params)
 
@@ -106,11 +104,9 @@ def get_servicenow_kb_integrations(cloud_account_id):
     try:
         with engine.connect() as connection:
             # First, get the tenant_id from the cloud account
-            tenant_query = text(
-                """
+            tenant_query = text("""
                 SELECT tenant FROM cloud_accounts WHERE id = :ac_id
-                """
-            )
+                """)
             tenant_result = connection.execute(tenant_query, {"ac_id": cloud_account_id})
             tenant_row = tenant_result.fetchone()
 
@@ -121,16 +117,14 @@ def get_servicenow_kb_integrations(cloud_account_id):
             tenant_id = tenant_row.tenant
 
             # Query ServiceNow integrations at tenant level
-            query = text(
-                """
+            query = text("""
                 SELECT i.id, icv.name, icv.value
                 FROM integrations i
                 JOIN integration_config_values icv ON i.id = icv.integration_id
                 WHERE i.type = 'servicenow'
                 AND i.tenant_id = :tenant_id
                 AND i.status = 'enabled'
-                """
-            )
+                """)
             result = connection.execute(query, {"tenant_id": tenant_id})
 
             integrations = defaultdict(dict)
@@ -188,8 +182,7 @@ def _get_integrations_cached(cache, lock, cloud_account_id, integration_type):
             return cache_entry["data"]
         try:
             with engine.connect() as connection:
-                query = text(
-                    """
+                query = text("""
                     SELECT i.id, ica.cloud_account_id, icv.name, icv.value
                     FROM integrations i
                     JOIN integration_config_values icv
@@ -198,8 +191,7 @@ def _get_integrations_cached(cache, lock, cloud_account_id, integration_type):
                     ON i.id = ica.integration_id
                     WHERE i.type = :integration_type
                     AND ica.cloud_account_id = :ac_id
-                    """
-                )
+                    """)
                 result = connection.execute(query, {"ac_id": cloud_account_id, "integration_type": integration_type})
 
                 integrations = defaultdict(dict)
@@ -347,16 +339,14 @@ def get_confluence_integrations_for_tenant(tenant_id):
         return []
     try:
         with engine.connect() as connection:
-            query = text(
-                """
+            query = text("""
                 SELECT DISTINCT i.id, icv.name, icv.value
                 FROM integrations i
                 JOIN integration_config_values icv ON i.id = icv.integration_id
                 JOIN integrations_cloud_accounts ica ON i.id = ica.integration_id
                 JOIN cloud_accounts ca ON ica.cloud_account_id = ca.id
                 WHERE i.type = 'confluence' AND ca.tenant = :tenant_id
-            """
-            )
+            """)
             result = connection.execute(query, {"tenant_id": tenant_id})
 
             integrations: dict = defaultdict(dict)
@@ -391,16 +381,14 @@ def get_servicenow_kb_integrations_for_tenant(tenant_id):
         return []
     try:
         with engine.connect() as connection:
-            query = text(
-                """
+            query = text("""
                 SELECT i.id, icv.name, icv.value
                 FROM integrations i
                 JOIN integration_config_values icv ON i.id = icv.integration_id
                 WHERE i.type = 'servicenow'
                 AND i.tenant_id = :tenant_id
                 AND i.status = 'enabled'
-            """
-            )
+            """)
             result = connection.execute(query, {"tenant_id": tenant_id})
 
             integrations: dict = defaultdict(dict)
