@@ -18,6 +18,7 @@ import (
 	toolcore "nudgebee/llm/tools/core"
 
 	"github.com/tmc/langchaingo/llms"
+	"golang.org/x/sync/singleflight"
 )
 
 // CacheScope defines the stability level of the cache
@@ -161,6 +162,11 @@ const GoogleAICacheNamespace = "llm_googleai_cache"
 // GoogleAICacheProvider implements caching for Google AI (pre-created cached content)
 type GoogleAICacheProvider struct {
 	namespace string
+	// createGroup collapses concurrent cache-miss creations for the same cache
+	// key into a single createCache call, so parallel conversations sharing an
+	// account:agent:model key don't each create a distinct (duplicate) Google AI
+	// CachedContent resource. Zero value is ready to use.
+	createGroup singleflight.Group
 }
 
 type CacheInfo struct {
@@ -487,7 +493,17 @@ func (p *GoogleAICacheProvider) ApplyCache(ctx context.Context, req *CacheReques
 		"status", "miss")
 	common.MetricsLLMCacheTotal(req.Provider, req.Model, "miss", req.AccountId)
 
-	cacheInfoResult, errCreate := p.createCache(ctx, req, cacheableMessages, contentHash, cacheKey, tokenCount)
+	// Collapse concurrent creations for the same cacheKey into one createCache
+	// call. Without this, parallel conversations that miss on the same
+	// account:agent:model key each create a distinct Google AI CachedContent —
+	// duplicate storage cost and orphaned resources under concurrent load (#302).
+	created, errCreate, _ := p.createGroup.Do(cacheKey, func() (interface{}, error) {
+		return p.createCache(ctx, req, cacheableMessages, contentHash, cacheKey, tokenCount)
+	})
+	var cacheInfoResult *CacheInfo
+	if errCreate == nil {
+		cacheInfoResult, _ = created.(*CacheInfo)
+	}
 	if errCreate != nil {
 		slog.Error("Google AI cache: Failed to create cache",
 			"error", errCreate,
