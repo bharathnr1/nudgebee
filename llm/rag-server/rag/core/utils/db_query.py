@@ -165,10 +165,11 @@ def get_servicenow_kb_integrations(cloud_account_id):
 # burst of concurrent requests for an uncached account collapses to a single
 # query (the sync fetches run in FastAPI's threadpool) instead of a thundering
 # herd. Cache hits don't take the lock.
-_integrations_cache_lock = threading.Lock()
+_llm_integrations_cache_lock = threading.Lock()
+_embeddings_integrations_cache_lock = threading.Lock()
 
 
-def _get_integrations_cached(cache, cloud_account_id, integration_type):
+def _get_integrations_cached(cache, lock, cloud_account_id, integration_type):
     """Return cached integration configs for an account, fetching on a miss.
 
     Double-checked locking: the fast path reads the cache lock-free; on a miss
@@ -181,7 +182,7 @@ def _get_integrations_cached(cache, cloud_account_id, integration_type):
         logger.info(f"Returning cached {integration_type} integrations for cloud_account_id={cloud_account_id}")
         return cache_entry["data"]
 
-    with _integrations_cache_lock:
+    with lock:
         cache_entry = cache.get(cloud_account_id)
         if cache_entry and time.time() - cache_entry["time"] < Config.rag_llm_provider_cache_ttl:
             return cache_entry["data"]
@@ -222,11 +223,13 @@ def _get_integrations_cached(cache, cloud_account_id, integration_type):
 
 
 def get_llm_integrations(cloud_account_id):
-    return _get_integrations_cached(_llm_integrations_cache, cloud_account_id, "llm")
+    return _get_integrations_cached(_llm_integrations_cache, _llm_integrations_cache_lock, cloud_account_id, "llm")
 
 
 def get_embeddings_integrations(cloud_account_id):
-    return _get_integrations_cached(_embeddings_integrations_cache, cloud_account_id, "embeddings")
+    return _get_integrations_cached(
+        _embeddings_integrations_cache, _embeddings_integrations_cache_lock, cloud_account_id, "embeddings"
+    )
 
 
 # ---------------------------------------------------------------------------
