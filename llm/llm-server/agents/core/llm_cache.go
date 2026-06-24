@@ -159,6 +159,15 @@ func (cm *CacheManager) Stop() {
 
 const GoogleAICacheNamespace = "llm_googleai_cache"
 
+// googleAICacheCreateLockTTL bounds how long the cross-replica creation lock is
+// held; if the holder dies mid-create the lock self-expires so peers can proceed.
+// googleAICacheCreateLockWait is how long a non-holder waits for the holder to
+// publish the cache entry before falling back to creating it itself.
+const (
+	googleAICacheCreateLockTTL  = 2 * time.Minute
+	googleAICacheCreateLockWait = 30 * time.Second
+)
+
 // GoogleAICacheProvider implements caching for Google AI (pre-created cached content)
 type GoogleAICacheProvider struct {
 	namespace string
@@ -508,6 +517,27 @@ func (p *GoogleAICacheProvider) ApplyCache(ctx context.Context, req *CacheReques
 	detachedCtx, cancelCreate := context.WithTimeout(detachedCtx, 5*time.Minute)
 	defer cancelCreate()
 	created, errCreate, _ := p.createGroup.Do(cacheKey, func() (interface{}, error) {
+		// Re-check the shared cache first: another goroutine (Tier 1) or replica
+		// (Tier 2) may have published the entry between our miss and this flight.
+		if info := p.readSharedCacheInfo(cacheKey); info != nil {
+			return info, nil
+		}
+		// Tier 2 (cross-replica): singleflight only collapses creations within one
+		// process, so with >1 llm-server replica each still creates a duplicate
+		// Google AI cache. A Redis SETNX lock on cacheKey ensures only one replica
+		// creates it; the others wait for the entry to be published and reuse it.
+		// Single-replica/bigcache deployments always acquire (no peers).
+		token, acquired := common.CacheTryLock(detachedCtx, cacheKey, googleAICacheCreateLockTTL)
+		if acquired {
+			defer common.CacheUnlock(detachedCtx, cacheKey, token)
+		} else {
+			// Another replica owns creation; wait briefly for it to publish, then reuse.
+			if info := p.waitForSharedCacheInfo(cacheKey, googleAICacheCreateLockWait); info != nil {
+				return info, nil
+			}
+			// Holder didn't publish in time — fall through and create (best-effort,
+			// avoids a deadlock if the holder died mid-create).
+		}
 		return p.createCache(detachedCtx, req, cacheableMessages, contentHash, cacheKey, tokenCount)
 	})
 	var cacheInfoResult *CacheInfo
@@ -550,6 +580,39 @@ func (p *GoogleAICacheProvider) ApplyCache(ctx context.Context, req *CacheReques
 		},
 		CacheHit:  false,
 		CacheInfo: cacheInfoResult,
+	}
+}
+
+// readSharedCacheInfo returns the published CacheInfo for cacheKey from the
+// shared cache, or nil if absent/corrupt. Used to reuse a cache another
+// goroutine or replica just created instead of creating a duplicate.
+func (p *GoogleAICacheProvider) readSharedCacheInfo(cacheKey string) *CacheInfo {
+	data, ok := common.CacheGet(p.namespace, cacheKey)
+	if !ok {
+		return nil
+	}
+	var info CacheInfo
+	if err := json.Unmarshal(data, &info); err != nil {
+		return nil
+	}
+	return &info
+}
+
+// waitForSharedCacheInfo polls the shared cache for up to `within` for an entry
+// published by the replica that holds the creation lock.
+func (p *GoogleAICacheProvider) waitForSharedCacheInfo(cacheKey string, within time.Duration) *CacheInfo {
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+	timeout := time.After(within)
+	for {
+		select {
+		case <-timeout:
+			return nil
+		case <-ticker.C:
+			if info := p.readSharedCacheInfo(cacheKey); info != nil {
+				return info
+			}
+		}
 	}
 }
 
