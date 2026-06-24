@@ -20,8 +20,11 @@ var validModules = map[string]bool{
 // moduleQueryFilters maps module names to their SQL query filters
 // This is a whitelist approach to prevent SQL injection
 var moduleQueryFilters = map[string]string{
-	ModuleInvestigation:     " AND c.session_id LIKE '" + events.SessionIdPrefixEvent + "%'",
-	ModuleUserInvestigation: "", // No additional filter for user investigation
+	ModuleInvestigation: " AND c.session_id LIKE '" + events.SessionIdPrefixEvent + "%'",
+	// user_investigation is the complement of investigation: exclude event-*
+	// sessions (incl. event-rca-*) so event-analysis spend isn't double-counted
+	// against the interactive chat budget.
+	ModuleUserInvestigation: " AND c.session_id NOT LIKE '" + events.SessionIdPrefixEvent + "%'",
 }
 
 // Entity type constants

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"nudgebee/llm/config"
+	"nudgebee/llm/events"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -52,6 +53,24 @@ func TestValidModules(t *testing.T) {
 		assert.True(t, validModules[module], fmt.Sprintf("%s should be a valid module", module))
 	}
 	assert.GreaterOrEqual(t, len(validModules), len(expectedModules))
+}
+
+// TestModuleQueryFiltersComplementary guards against regression of #290: the
+// user_investigation filter was empty, so it matched every session (including
+// event-*), double-counting event-analysis spend against the interactive chat
+// budget. The two module filters must be complements over the event- prefix.
+func TestModuleQueryFiltersComplementary(t *testing.T) {
+	inv := moduleQueryFilters[ModuleInvestigation]
+	user := moduleQueryFilters[ModuleUserInvestigation]
+
+	// investigation counts only event-* sessions.
+	assert.Contains(t, inv, "LIKE '"+events.SessionIdPrefixEvent+"%'")
+	assert.NotContains(t, inv, "NOT LIKE")
+
+	// user_investigation must be the complement — and must NOT be empty (an
+	// empty filter was the bug: it swept in event-* sessions).
+	assert.NotEmpty(t, user, "user_investigation filter must exclude event-* sessions, not be empty")
+	assert.Contains(t, user, "NOT LIKE '"+events.SessionIdPrefixEvent+"%'")
 }
 
 // TestValidEntityTypes tests the entity type validation
