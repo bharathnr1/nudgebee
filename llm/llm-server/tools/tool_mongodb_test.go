@@ -140,6 +140,26 @@ func TestMongoDBTool_NoConfig(t *testing.T) {
 	assert.Contains(t, err.Error(), "please configure")
 }
 
+func TestMongoDBTool_RequiresAccountId(t *testing.T) {
+	// A configured integration with no tenant scope (empty AccountId) must
+	// fail fast before any proxy execution, rather than running unscoped.
+	ctx := newMongoToolContext()
+	ctx.AccountId = ""
+
+	tool := MongoDBTool{toolName: ToolMongoServerStatus}
+	called := false
+	withFakeRelay(t, func(relay.ActionExecuteBody) (map[string]any, error) {
+		called = true
+		return map[string]any{"data": `{"ok":1}`}, nil
+	}, func() {
+		resp, err := tool.Call(ctx, core.NBToolCallRequest{})
+		require.Error(t, err)
+		assert.Equal(t, core.NBToolResponseStatusError, resp.Status)
+		assert.Contains(t, err.Error(), "accountId is required")
+	})
+	assert.False(t, called, "relay must not be invoked when tenant scope is missing")
+}
+
 func mustJSON(t *testing.T, v any) string {
 	t.Helper()
 	b, err := json.Marshal(v)

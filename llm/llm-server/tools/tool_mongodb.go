@@ -149,6 +149,12 @@ func buildMongoQueryParams(datasourceKey string, command map[string]any, timeout
 // agent via the relay, modeled on executeSSHViaProxyAgent. MongoDB datasources
 // are always reached over the proxy-agent path.
 func executeMongoViaProxyAgent(toolContext core.NbToolContext, command map[string]any, accountId string) (string, error) {
+	// Fail fast if the tenant scope is missing: every proxy action is account-scoped,
+	// and an empty accountId would execute without tenant isolation.
+	if accountId == "" {
+		return "", errors.New("accountId is required for tenant scoping")
+	}
+
 	datasourceKey := getConfigValue(toolContext.ToolConfig.Values, "datasource_key")
 	if datasourceKey == "" {
 		if toolContext.ToolConfig.Id != "" {
@@ -198,7 +204,7 @@ func parseProxyMongoResponse(response map[string]any) (string, error) {
 	// Inspect the payload only to surface a forager-side error; otherwise pass
 	// the JSON through unchanged so document structure is preserved for the LLM.
 	var mongoResult map[string]any
-	if err := json.Unmarshal([]byte(dataStr), &mongoResult); err == nil {
+	if err := json.Unmarshal([]byte(dataStr), &mongoResult); err == nil && mongoResult != nil {
 		if errMsg, ok := mongoResult["error"].(string); ok && errMsg != "" {
 			return "", fmt.Errorf("proxy mongo_query error: %s", errMsg)
 		}
