@@ -11,14 +11,28 @@ import (
 )
 
 // SplunkLogSource implements LogSource for Splunk Observability Cloud Log Observer.
-type SplunkLogSource struct{}
+//
+// GetConfigs / LogSearch are optional seams over the integrations package: when
+// nil (the production default), the real integrations calls are used. Tests set
+// them per-instance, avoiding global state so cases can run in parallel.
+type SplunkLogSource struct {
+	GetConfigs func(*security.RequestContext, string) (integrations.SplunkO11yConnConfig, error)
+	LogSearch  func(integrations.SplunkO11yConnConfig, string, int64, int64, int) ([]integrations.O11yLogEntry, error)
+}
 
-// Seams over the integrations package so the log-source logic can be unit-tested
-// without a live Splunk O11y backend.
-var (
-	splunkO11yGetConfigs = integrations.GetSplunkO11yConfigs
-	splunkO11yLogSearch  = integrations.ExecuteO11yLogSearch
-)
+func (s *SplunkLogSource) getConfigs(ctx *security.RequestContext, accountId string) (integrations.SplunkO11yConnConfig, error) {
+	if s.GetConfigs != nil {
+		return s.GetConfigs(ctx, accountId)
+	}
+	return integrations.GetSplunkO11yConfigs(ctx, accountId)
+}
+
+func (s *SplunkLogSource) logSearch(cfg integrations.SplunkO11yConnConfig, query string, startMs, endMs int64, limit int) ([]integrations.O11yLogEntry, error) {
+	if s.LogSearch != nil {
+		return s.LogSearch(cfg, query, startMs, endMs, limit)
+	}
+	return integrations.ExecuteO11yLogSearch(cfg, query, startMs, endMs, limit)
+}
 
 // splunkO11yLogLabelMapping maps standard Nudgebee field names to Splunk O11y / OTel field names.
 var splunkO11yLogLabelMapping = map[string]string{
@@ -40,7 +54,7 @@ var splunkO11yLogLabelMapping = map[string]string{
 
 // QueryLogs fetches logs from Splunk O11y Log Observer.
 func (s *SplunkLogSource) QueryLogs(ctx *security.RequestContext, req FetchLogRequest) ([]OutputLog, error) {
-	cfg, err := splunkO11yGetConfigs(ctx, req.AccountId)
+	cfg, err := s.getConfigs(ctx, req.AccountId)
 	if err != nil {
 		ctx.GetLogger().Error("SplunkLogSource.QueryLogs: failed to get configs", "error", err)
 		return nil, fmt.Errorf("failed to get Splunk O11y configs: %w", err)
@@ -59,7 +73,7 @@ func (s *SplunkLogSource) QueryLogs(ctx *security.RequestContext, req FetchLogRe
 		limit = 1000
 	}
 
-	entries, err := splunkO11yLogSearch(cfg, logQuery, startMs, endMs, limit)
+	entries, err := s.logSearch(cfg, logQuery, startMs, endMs, limit)
 	if err != nil {
 		ctx.GetLogger().Error("SplunkLogSource.QueryLogs: log search failed", "query", logQuery, "error", err)
 		return nil, fmt.Errorf("failed to execute Log Observer query: %w", err)
@@ -95,20 +109,16 @@ func splunkO11yFallbackLogLabels() []OutputLogLabel {
 // well-known static field set whenever config lookup or the sample query fails,
 // or the sample yields no fields, so the list never regresses to empty.
 func (s *SplunkLogSource) QueryLabels(ctx *security.RequestContext, req FetchLogLabelRequest) ([]OutputLogLabel, error) {
-	cfg, err := splunkO11yGetConfigs(ctx, req.AccountId)
+	cfg, err := s.getConfigs(ctx, req.AccountId)
 	if err != nil {
-		if ctx != nil {
-			ctx.GetLogger().Warn("SplunkLogSource.QueryLabels: config lookup failed, using static fallback", "error", err)
-		}
+		ctx.GetLogger().Warn("SplunkLogSource.QueryLabels: config lookup failed, using static fallback", "error", err)
 		return splunkO11yFallbackLogLabels(), nil
 	}
 
 	startMs, endMs := normalizeTimeRangeMs(req.StartTime, req.EndTime)
-	entries, err := splunkO11yLogSearch(cfg, "", startMs, endMs, 500)
+	entries, err := s.logSearch(cfg, "", startMs, endMs, 500)
 	if err != nil {
-		if ctx != nil {
-			ctx.GetLogger().Warn("SplunkLogSource.QueryLabels: sample query failed, using static fallback", "error", err)
-		}
+		ctx.GetLogger().Warn("SplunkLogSource.QueryLabels: sample query failed, using static fallback", "error", err)
 		return splunkO11yFallbackLogLabels(), nil
 	}
 
@@ -143,7 +153,7 @@ func dedupeO11yFieldLabels(entries []integrations.O11yLogEntry) []OutputLogLabel
 
 // QueryLabelValues returns distinct values for a specific log field.
 func (s *SplunkLogSource) QueryLabelValues(ctx *security.RequestContext, req FetchLogLabelValuesRequest) ([]OutputLogLabelValue, error) {
-	cfg, err := splunkO11yGetConfigs(ctx, req.AccountId)
+	cfg, err := s.getConfigs(ctx, req.AccountId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get Splunk O11y configs: %w", err)
 	}
@@ -158,7 +168,7 @@ func (s *SplunkLogSource) QueryLabelValues(ctx *security.RequestContext, req Fet
 
 	// Query a small set of recent logs and extract distinct values for the field.
 	startMs, endMs := normalizeTimeRangeMs(req.StartTime, req.EndTime)
-	entries, err := splunkO11yLogSearch(cfg, "", startMs, endMs, 500)
+	entries, err := s.logSearch(cfg, "", startMs, endMs, 500)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch Splunk O11y log label values: %w", err)
 	}
