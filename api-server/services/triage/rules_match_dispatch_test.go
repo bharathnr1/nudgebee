@@ -15,40 +15,41 @@ import (
 // (#286). It substitutes the DB-backed updater with a fake and isolates the package
 // semaphore per subtest, so it's deterministic and needs no database.
 func TestDispatchRuleMatchCountUpdates(t *testing.T) {
-	origUpdater := ruleMatchCountUpdate
+	origUpdater := ruleMatchCountUpdates
 	origSem := ruleMatchUpdateSem
 	t.Cleanup(func() {
-		ruleMatchCountUpdate = origUpdater
+		ruleMatchCountUpdates = origUpdater
 		ruleMatchUpdateSem = origSem
 	})
 
-	t.Run("dispatches every winning rule id exactly once", func(t *testing.T) {
+	t.Run("dispatches all winning rule ids in one batch", func(t *testing.T) {
 		ruleMatchUpdateSem = make(chan struct{}, ruleMatchUpdateMaxConcurrency) // empty
 		ids := []string{"r1", "r2", "r3"}
 
 		var mu sync.Mutex
-		got := map[string]int{}
+		var batches [][]string
 		var wg sync.WaitGroup
-		wg.Add(len(ids))
-		ruleMatchCountUpdate = func(_ context.Context, _ *sqlx.DB, id string) {
+		wg.Add(1)
+		ruleMatchCountUpdates = func(_ context.Context, _ *sqlx.DB, ruleIDs []string) {
 			mu.Lock()
-			got[id]++
+			batches = append(batches, ruleIDs)
 			mu.Unlock()
 			wg.Done()
 		}
 
 		dispatchRuleMatchCountUpdates(context.Background(), nil, ids)
-		wg.Wait() // deterministic: the fake signals once per id
+		wg.Wait() // deterministic: the fake signals once per batch
 
 		mu.Lock()
 		defer mu.Unlock()
-		assert.Equal(t, map[string]int{"r1": 1, "r2": 1, "r3": 1}, got)
+		assert.Equal(t, [][]string{{"r1", "r2", "r3"}}, batches,
+			"all winning rule ids must be persisted in a single batched update")
 	})
 
 	t.Run("empty rule ids is a no-op", func(t *testing.T) {
 		ruleMatchUpdateSem = make(chan struct{}, ruleMatchUpdateMaxConcurrency)
 		var called int32
-		ruleMatchCountUpdate = func(_ context.Context, _ *sqlx.DB, _ string) { atomic.AddInt32(&called, 1) }
+		ruleMatchCountUpdates = func(_ context.Context, _ *sqlx.DB, _ []string) { atomic.AddInt32(&called, 1) }
 
 		dispatchRuleMatchCountUpdates(context.Background(), nil, nil)
 		assert.Equal(t, int32(0), atomic.LoadInt32(&called))
@@ -63,7 +64,7 @@ func TestDispatchRuleMatchCountUpdates(t *testing.T) {
 		ruleMatchUpdateSem = full
 
 		var called int32
-		ruleMatchCountUpdate = func(_ context.Context, _ *sqlx.DB, _ string) { atomic.AddInt32(&called, 1) }
+		ruleMatchCountUpdates = func(_ context.Context, _ *sqlx.DB, _ []string) { atomic.AddInt32(&called, 1) }
 
 		dispatchRuleMatchCountUpdates(context.Background(), nil, []string{"r1"})
 		// Deterministic: a full semaphore forces the default branch — no goroutine

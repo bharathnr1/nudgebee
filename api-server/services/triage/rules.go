@@ -646,16 +646,17 @@ const ruleMatchUpdateMaxConcurrency = 16
 // ruleMatchUpdateSem is the concurrency limiter for match-count updates.
 var ruleMatchUpdateSem = make(chan struct{}, ruleMatchUpdateMaxConcurrency)
 
-// ruleMatchCountUpdate is the function used to persist a single rule's match
-// count. It's a package var so tests can substitute a fake without a DB.
-var ruleMatchCountUpdate = updateRuleMatchCount
+// ruleMatchCountUpdates is the function used to persist rule match counts.
+// It's a package var so tests can substitute a fake without a DB.
+var ruleMatchCountUpdates = updateRuleMatchCounts
 
 // dispatchRuleMatchCountUpdates asynchronously bumps match_count for the given
-// winning rule IDs, bounded to ruleMatchUpdateMaxConcurrency concurrent updates.
-// match_count is a non-critical statistic, so when the bound is saturated the
-// update is dropped (and logged) rather than blocking the event pipeline — the
-// opposite failure mode of the previous unbounded `go updateRuleMatchCount`,
-// which exhausted the DB pool under load.
+// winning rule IDs in a single batched update, bounded to
+// ruleMatchUpdateMaxConcurrency concurrent dispatches. match_count is a
+// non-critical statistic, so when the bound is saturated the update is dropped
+// (and logged) rather than blocking the event pipeline — the opposite failure
+// mode of the previous unbounded `go updateRuleMatchCount`, which exhausted the
+// DB pool under load.
 func dispatchRuleMatchCountUpdates(ctx context.Context, db *sqlx.DB, ruleIDs []string) {
 	if len(ruleIDs) == 0 {
 		return
@@ -663,16 +664,17 @@ func dispatchRuleMatchCountUpdates(ctx context.Context, db *sqlx.DB, ruleIDs []s
 	// Snapshot the package vars so the spawned goroutine is self-contained and
 	// doesn't read shared state after launch.
 	sem := ruleMatchUpdateSem
-	update := ruleMatchCountUpdate
+	update := ruleMatchCountUpdates
 	select {
 	case sem <- struct{}{}:
 		go func() {
 			defer func() { <-sem }()
-			// Detached context: the request ctx may be cancelled once
-			// CheckTriageRules returns; these are fire-and-forget stat updates.
-			for _, id := range ruleIDs {
-				update(context.Background(), db, id)
-			}
+			// Detached context with a dedicated timeout: the request ctx may be
+			// cancelled once CheckTriageRules returns, and a fire-and-forget stat
+			// update must not hold a pool connection indefinitely on a stalled DB.
+			ctxTimeout, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			update(ctxTimeout, db, ruleIDs)
 		}()
 	default:
 		slog.WarnContext(ctx, "triage: rule match-count update skipped (update concurrency saturated)",
@@ -680,18 +682,23 @@ func dispatchRuleMatchCountUpdates(ctx context.Context, db *sqlx.DB, ruleIDs []s
 	}
 }
 
-// updateRuleMatchCount increments the match count for a rule
-func updateRuleMatchCount(ctx context.Context, db *sqlx.DB, ruleID string) {
+// updateRuleMatchCounts increments match_count (and stamps last_matched_at) for
+// every given rule in a single query, avoiding an N+1 update loop. Winning rule
+// IDs for one event are distinct, so `id = ANY($1)` increments each exactly once.
+func updateRuleMatchCounts(ctx context.Context, db *sqlx.DB, ruleIDs []string) {
+	if len(ruleIDs) == 0 {
+		return
+	}
 	query := `
 		UPDATE event_triage_rules
 		SET match_count = match_count + 1,
 		    last_matched_at = NOW()
-		WHERE id = $1
+		WHERE id = ANY($1)
 	`
 
-	_, err := db.ExecContext(ctx, query, ruleID)
+	_, err := db.ExecContext(ctx, query, pq.Array(ruleIDs))
 	if err != nil {
-		slog.WarnContext(ctx, "Failed to update rule match count", "error", err, "rule_id", ruleID)
+		slog.WarnContext(ctx, "Failed to update rule match counts", "error", err, "rule_ids", ruleIDs)
 	}
 }
 
