@@ -147,11 +147,12 @@ func (k *kuberntesAdapter) ApplyRecommendation(ctx AccountAdapterContext, reques
 				if !ok {
 					continue
 				}
-				if resource == "cpu" {
+				switch resource {
+				case "cpu":
 					if allocated, ok := item["allocated"].(map[string]any); ok {
 						cpuAllocated = allocated
 					}
-				} else if resource == "memory" {
+				case "memory":
 					if allocated, ok := item["allocated"].(map[string]any); ok {
 						memAllocated = allocated
 					}
