@@ -7,6 +7,9 @@
 #
 # Each target requires the corresponding service toolchains to be installed
 # (Go + golangci-lint, Poetry/uv, Node). Run `make help` to list targets.
+#
+# Per-service work is expressed as <target>-<service> rules so GNU Make can run
+# them in parallel, e.g. `make -j test`.
 
 GO_SERVICES := \
 	api-server/services \
@@ -33,18 +36,31 @@ LINT_SERVICES := $(GO_SERVICES) $(PY_SERVICES) $(TS_SERVICES)
 TEST_SERVICES := $(GO_SERVICES) $(PY_SERVICES) $(TS_SERVICES) $(E2E_SERVICES)
 
 .PHONY: help fmt lint test validate
+.PHONY: $(addprefix fmt-,$(FMT_SERVICES)) $(addprefix lint-,$(LINT_SERVICES)) $(addprefix test-,$(TEST_SERVICES))
 
 help: ## Show available targets
 	@echo "Nudgebee monorepo — root targets (fan out to every service):"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-9s\033[0m %s\n", $$1, $$2}'
 
 fmt: ## Format code in every service
-	@for d in $(FMT_SERVICES); do echo "==> fmt $$d"; $(MAKE) -C $$d fmt || exit 1; done
+fmt: $(addprefix fmt-,$(FMT_SERVICES))
 
 lint: ## Lint every service
-	@for d in $(LINT_SERVICES); do echo "==> lint $$d"; $(MAKE) -C $$d lint || exit 1; done
+lint: $(addprefix lint-,$(LINT_SERVICES))
 
 test: ## Run tests in every service
-	@for d in $(TEST_SERVICES); do echo "==> test $$d"; $(MAKE) -C $$d test || exit 1; done
+test: $(addprefix test-,$(TEST_SERVICES))
 
 validate: lint test ## Lint then test every service
+
+$(addprefix fmt-,$(FMT_SERVICES)): fmt-%:
+	@echo "==> fmt $*"
+	@$(MAKE) -C $* fmt
+
+$(addprefix lint-,$(LINT_SERVICES)): lint-%:
+	@echo "==> lint $*"
+	@$(MAKE) -C $* lint
+
+$(addprefix test-,$(TEST_SERVICES)): test-%:
+	@echo "==> test $*"
+	@$(MAKE) -C $* test
