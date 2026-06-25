@@ -1,10 +1,12 @@
 # llm/benchmark (Python / uv)
-# Installs the package and its dependencies from pyproject.toml into the system
-# environment via uv. fmt/lint/test use the black, flake8 and pytest tools
-# declared in pyproject.toml.
+# Install mirrors CI (.github/workflows/benchmark-server.yaml): the pinned
+# dependency set first (uv.lock is a `uv pip compile` requirements file despite
+# its name), then the package itself in editable mode. fmt/lint/test use the
+# black, flake8 and pytest tools declared in pyproject.toml.
 .PHONY: install fmt lint test clean
 
 install:
+	uv pip install --system -r uv.lock
 	uv pip install --system -e .
 
 fmt:
