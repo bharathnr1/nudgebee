@@ -23,15 +23,19 @@ const (
 )
 
 // mongoOp describes a single read-only MongoDB diagnostic operation: the tool
-// name the AI calls, its description, and the Mongo command document forager
-// should run.
+// name the AI calls, its description, and the dedicated forager action it maps
+// to.
 type mongoOp struct {
 	name        string
 	description string
-	// command is the MongoDB command document forager executes, e.g.
-	// {"serverStatus": 1}. See buildMongoQueryParams for how it is wired into
-	// the signed relay params.
-	command map[string]any
+	// action is the forager MongoDB action this tool invokes. forager exposes a
+	// distinct, parameter-less action per diagnostic (each hardcodes its own
+	// command document, e.g. mongo_server_status -> {serverStatus:1}); the
+	// generic `mongo_query` action is a collection find and does NOT accept a
+	// command document. These action names must match forager
+	// (forager/pkg/proxy/mongodb/proxy.go) and the relay signer allowlist
+	// (relay-server/pkg/signing/signer.go).
+	action string
 }
 
 var mongoOps = map[string]mongoOp{
@@ -40,21 +44,21 @@ var mongoOps = map[string]mongoOp{
 		description: `Returns MongoDB serverStatus — connections, memory, operation counters, network and asserts. ` +
 			`Use this to inspect overall server health (e.g. connection saturation, memory pressure, op throughput). ` +
 			`Read-only. Optional input: JSON object with an 'instance' field naming the MongoDB integration to target.`,
-		command: map[string]any{"serverStatus": 1},
+		action: "mongo_server_status",
 	},
 	ToolMongoReplSetStatus: {
 		name: ToolMongoReplSetStatus,
 		description: `Returns MongoDB replSetGetStatus — replica-set membership, each member's state, and replication lag. ` +
 			`Use this to check whether the replica set is healthy or a secondary is lagging. ` +
 			`Read-only. Optional input: JSON object with an 'instance' field naming the MongoDB integration to target.`,
-		command: map[string]any{"replSetGetStatus": 1},
+		action: "mongo_repl_status",
 	},
 	ToolMongoCurrentOp: {
 		name: ToolMongoCurrentOp,
 		description: `Returns MongoDB currentOp — operations in progress right now. ` +
 			`Use this to find long-running or slow operations. ` +
 			`Read-only. Optional input: JSON object with an 'instance' field naming the MongoDB integration to target.`,
-		command: map[string]any{"currentOp": 1},
+		action: "mongo_current_ops",
 	},
 }
 
@@ -106,7 +110,7 @@ func (m MongoDBTool) Call(nbRequestContext core.NbToolContext, input core.NBTool
 		return core.NBToolResponse{}, fmt.Errorf("no MongoDB integration configured for %s, please configure a MongoDB proxy integration", m.Name())
 	}
 
-	data, err := executeMongoViaProxyAgent(nbRequestContext, m.op().command, nbRequestContext.AccountId)
+	data, err := executeMongoViaProxyAgent(nbRequestContext, m.op().action, nbRequestContext.AccountId)
 	if err != nil {
 		// Propagate the forager error message so the LLM can act on it
 		// (unreachable host, auth failure, etc.) — mirrors parseProxySSHResponse.
@@ -124,31 +128,22 @@ func (m MongoDBTool) Call(nbRequestContext core.NbToolContext, input core.NBTool
 	}, nil
 }
 
-// buildMongoQueryParams builds the `params` object for the signed `mongo_query`
-// relay action.
-//
-// !!! ASSUMPTION TO CONFIRM AGAINST FORAGER !!!
-// The relay signer (relay-server/pkg/signing/signer.go) only fixes that the
-// signed `mongo_query` payload is {action, datasource_id, params}. The *inner*
-// shape of `params` is defined by the external forager
-// (forager/pkg/proxy/mongodb/proxy.go), which is NOT in this repo and cannot be
-// verified here. The mapping below is INFERRED from the SSH/DB proxy params
-// shape (datasource_id + the command + timeout_ms). A reviewer with access to
-// forager MUST confirm the exact key names ("command" / "timeout_ms") and that
-// a command document like {"serverStatus": 1} is what forager expects.
-// This builder is intentionally the single, isolated place to correct it.
-func buildMongoQueryParams(datasourceKey string, command map[string]any, timeoutMs float64) map[string]any {
+// buildMongoActionParams builds the `params` object for a forager MongoDB
+// diagnostic action. These actions (mongo_server_status / mongo_repl_status /
+// mongo_current_ops) take no command document — they hardcode their own — so
+// the only field forager needs is the datasource to target. The signed payload
+// is {action, datasource_id, params}.
+func buildMongoActionParams(datasourceKey string) map[string]any {
 	return map[string]any{
 		"datasource_id": datasourceKey,
-		"command":       command,
-		"timeout_ms":    timeoutMs,
 	}
 }
 
-// executeMongoViaProxyAgent sends a signed `mongo_query` request to the forager
-// agent via the relay, modeled on executeSSHViaProxyAgent. MongoDB datasources
-// are always reached over the proxy-agent path.
-func executeMongoViaProxyAgent(toolContext core.NbToolContext, command map[string]any, accountId string) (string, error) {
+// executeMongoViaProxyAgent sends a signed forager MongoDB diagnostic request
+// via the relay, modeled on executeSSHViaProxyAgent. `action` is the forager
+// action (mongo_server_status / mongo_repl_status / mongo_current_ops). MongoDB
+// datasources are always reached over the proxy-agent path.
+func executeMongoViaProxyAgent(toolContext core.NbToolContext, action string, accountId string) (string, error) {
 	// Fail fast if the tenant scope is missing: every proxy action is account-scoped,
 	// and an empty accountId would execute without tenant isolation.
 	if accountId == "" {
@@ -173,19 +168,17 @@ func executeMongoViaProxyAgent(toolContext core.NbToolContext, command map[strin
 	}
 
 	timeoutSeconds := config.Config.LlmServerRelayPodExecutionTimeoutSeconds
-	params := buildMongoQueryParams(datasourceKey, command, float64(timeoutSeconds*1000))
-
 	actionParam := relay.ActionExecuteBody{
 		AccountID:    accountId,
-		ActionName:   "mongo_query",
-		ActionParams: params,
+		ActionName:   action,
+		ActionParams: buildMongoActionParams(datasourceKey),
 		AgentType:    agentType,
 		Timeout:      time.Second * time.Duration(timeoutSeconds),
 	}
 
 	response, err := mongoRelayExecute(actionParam)
 	if err != nil {
-		return "", fmt.Errorf("proxy agent mongo_query failed: %w", err)
+		return "", fmt.Errorf("proxy agent %s failed: %w", action, err)
 	}
 
 	return parseProxyMongoResponse(response)

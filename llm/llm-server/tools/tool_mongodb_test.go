@@ -1,7 +1,6 @@
 package tools
 
 import (
-	"encoding/json"
 	"errors"
 	"testing"
 
@@ -43,12 +42,12 @@ func withFakeRelay(t *testing.T, fake func(relay.ActionExecuteBody) (map[string]
 
 func TestMongoDBTool_SendsExpectedCommand(t *testing.T) {
 	cases := []struct {
-		toolName    string
-		wantCommand map[string]any
+		toolName   string
+		wantAction string
 	}{
-		{ToolMongoServerStatus, map[string]any{"serverStatus": 1}},
-		{ToolMongoReplSetStatus, map[string]any{"replSetGetStatus": 1}},
-		{ToolMongoCurrentOp, map[string]any{"currentOp": 1}},
+		{ToolMongoServerStatus, "mongo_server_status"},
+		{ToolMongoReplSetStatus, "mongo_repl_status"},
+		{ToolMongoCurrentOp, "mongo_current_ops"},
 	}
 
 	for _, tc := range cases {
@@ -66,18 +65,18 @@ func TestMongoDBTool_SendsExpectedCommand(t *testing.T) {
 				assert.Equal(t, core.NBToolResponseStatusSuccess, resp.Status)
 			})
 
-			// (a) signed action name is mongo_query and the command document matches.
-			assert.Equal(t, "mongo_query", captured.ActionName)
+			// (a) each diagnostic maps to its dedicated forager action, routed via
+			// the proxy agent and scoped to the datasource.
+			assert.Equal(t, tc.wantAction, captured.ActionName)
 			assert.Equal(t, "proxy", captured.AgentType, "vm_agent integration must route to the proxy agent")
 			assert.Equal(t, "ds-mongo-1", captured.ActionParams["datasource_id"])
 
-			cmd, ok := captured.ActionParams["command"].(map[string]any)
-			require.True(t, ok, "params.command must be a command document, got %T", captured.ActionParams["command"])
-			// JSON-normalize both sides so the literal 1 vs int(1) comparison is stable.
-			assert.JSONEq(t, mustJSON(t, tc.wantCommand), mustJSON(t, cmd))
-
+			// (b) these forager actions hardcode their own command — the tool must
+			// NOT send a command document or timeout_ms in params.
+			_, hasCommand := captured.ActionParams["command"]
+			assert.False(t, hasCommand, "status actions must not send a command document")
 			_, hasTimeout := captured.ActionParams["timeout_ms"]
-			assert.True(t, hasTimeout, "params must include timeout_ms")
+			assert.False(t, hasTimeout, "status actions must not send timeout_ms")
 		})
 	}
 }
@@ -158,11 +157,4 @@ func TestMongoDBTool_RequiresAccountId(t *testing.T) {
 		assert.Contains(t, err.Error(), "accountId is required")
 	})
 	assert.False(t, called, "relay must not be invoked when tenant scope is missing")
-}
-
-func mustJSON(t *testing.T, v any) string {
-	t.Helper()
-	b, err := json.Marshal(v)
-	require.NoError(t, err)
-	return string(b)
 }
