@@ -68,7 +68,7 @@ func parseSelectColumns(actionPayload *ActionRequest) ([]query.QueryColumn, erro
 	}
 	selectionSet := opDef.SelectionSet.Selections
 	//get the selection set fields
-	selectionSetIndex := 0
+	selectionSetIndex := -1
 	for i, selection := range selectionSet {
 		field, ok := selection.(*ast.Field)
 		if !ok {
@@ -78,6 +78,17 @@ func parseSelectColumns(actionPayload *ActionRequest) ([]query.QueryColumn, erro
 		if field.Name.Value == actionNameToParser {
 			selectionSetIndex = i
 			break
+		}
+	}
+	// When the action name isn't found, fall back to the first selection only for
+	// single-selection queries (callers that don't set Action.Name). With multiple
+	// selections a missing match is ambiguous, so error rather than silently
+	// projecting the wrong field's columns.
+	if selectionSetIndex == -1 {
+		if len(selectionSet) == 1 {
+			selectionSetIndex = 0
+		} else {
+			return cols, fmt.Errorf("action %q not found in graphql query selections", actionNameToParser)
 		}
 	}
 	rootField, ok := selectionSet[selectionSetIndex].(*ast.Field)

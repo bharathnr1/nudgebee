@@ -94,4 +94,14 @@ func TestParseSelectColumnsMalformed(t *testing.T) {
 		assert.Equal(t, []string{"a", "b"}, lo.Map(cols, func(item query.QueryColumn, index int) string { return item.Name }))
 		assert.Equal(t, []string{"true"}, cols[0].Args)
 	})
+
+	t.Run("MultiSelectionActionNotFound", func(t *testing.T) {
+		// Multiple top-level selections but the action name matches none: must
+		// error rather than silently projecting the first field's columns.
+		_, err := parseSelectColumns(&ActionRequest{
+			RequestQuery: `query MyQuery { foo { a } bar { b } }`,
+			Action:       ActionRequestAction{Name: "baz"},
+		})
+		assert.Error(t, err)
+	})
 }
