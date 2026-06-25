@@ -786,8 +786,12 @@ func ApplyEventResolution(ctx *security.RequestContext, query EventRecommendatio
 								}
 							}
 						}
+					} else {
+						return EventRecommendationApplyResponse{}, fmt.Errorf("resolution: evidence is missing, not an array, or empty")
 					}
 				}
+			} else {
+				return EventRecommendationApplyResponse{}, fmt.Errorf("resolution: findings is missing, not an array, or empty")
 			}
 		}
 		updatedResult, err4 := updateContainerImage(result, imageChangeContainerName, imageNameWithTag)
