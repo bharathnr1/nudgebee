@@ -216,12 +216,12 @@ func buildAzureMetricKql(rawQuery string, startMs, endMs int64, stepMinutes int,
 	b.WriteString(azureMetricsTable)
 	b.WriteString("\n")
 	b.WriteString(timeFilter)
-	b.WriteString(fmt.Sprintf("\n| where name == '%s'", escapeKqlValue(rawQuery)))
+	fmt.Fprintf(&b, "\n| where name == '%s'", escapeKqlValue(rawQuery))
 	for _, c := range whereClauses {
 		b.WriteString("\n| where ")
 		b.WriteString(c)
 	}
-	b.WriteString(fmt.Sprintf("\n| summarize value = avg(value) by bin(timestamp, %dm)\n| order by timestamp asc", stepMinutes))
+	fmt.Fprintf(&b, "\n| summarize value = avg(value) by bin(timestamp, %dm)\n| order by timestamp asc", stepMinutes)
 	return b.String(), nil
 }
 
