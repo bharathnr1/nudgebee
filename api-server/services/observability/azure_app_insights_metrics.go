@@ -173,12 +173,20 @@ func (s *AzureAppInsightsMetricSource) FetchMetricLabelValues(ctx *security.Requ
 		return nil, fmt.Errorf("failed to get azure app insights configs: %w", err)
 	}
 
-	metricName, _ := req.Request["metric_name"].(string)
+	metricName := ""
+	if req.Request != nil {
+		if v, ok := req.Request["metric_name"].(string); ok {
+			metricName = v
+		}
+	}
 	kql := fmt.Sprintf("%s\n| where timestamp > ago(7d)", azureMetricsTable)
 	if metricName != "" {
 		kql += fmt.Sprintf("\n| where name == '%s'", escapeKqlValue(metricName))
 	}
-	kql += fmt.Sprintf("\n| distinct tostring(customDimensions['%s'])\n| where isnotempty(Column1)\n| limit 200", escapeKqlValue(req.Label))
+	// Project the dimension value into an explicitly named column rather than
+	// relying on KQL's auto-generated `Column1`, which would break the
+	// isnotempty() filter if the engine's naming changed.
+	kql += fmt.Sprintf("\n| project nb_dim_val = tostring(customDimensions['%s'])\n| distinct nb_dim_val\n| where isnotempty(nb_dim_val)\n| limit 200", escapeKqlValue(req.Label))
 
 	resp, err := s.exec(ctx, conf, kql)
 	if err != nil {
@@ -348,14 +356,26 @@ func isAzureRawKql(q string) bool {
 	return strings.Contains(t, "|") || strings.HasPrefix(strings.ToLower(t), "let ")
 }
 
-// injectAzureKqlAfterTable inserts a clause right after the leading table name
-// (first line) of a raw KQL query.
+// injectAzureKqlAfterTable inserts a clause right after the leading table
+// expression of a raw KQL query, before its first pipe operator. It scans
+// line-by-line and skips blank lines, `//` comments and `let` statements so a
+// pipe inside a string literal or let binding doesn't cause a misplaced insert.
 func injectAzureKqlAfterTable(query, clause string) string {
-	trimmed := strings.TrimRight(query, "\n")
-	if idx := strings.Index(trimmed, "|"); idx != -1 {
-		return strings.TrimRight(trimmed[:idx], " \n") + "\n" + clause + "\n" + strings.TrimLeft(trimmed[idx:], " ")
+	lines := strings.Split(query, "\n")
+	for i, line := range lines {
+		t := strings.TrimSpace(line)
+		if t == "" || strings.HasPrefix(t, "//") || strings.HasPrefix(strings.ToLower(t), "let ") {
+			continue
+		}
+		if idx := strings.Index(line, "|"); idx != -1 {
+			lines[i] = strings.TrimRight(line[:idx], " ") + "\n" + clause + "\n" + strings.TrimLeft(line[idx:], " ")
+			return strings.Join(lines, "\n")
+		}
+		// First meaningful line has no pipe: append the clause after it.
+		lines[i] = strings.TrimRight(line, " ") + "\n" + clause
+		return strings.Join(lines, "\n")
 	}
-	return trimmed + "\n" + clause
+	return strings.TrimRight(query, "\n") + "\n" + clause
 }
 
 // escapeKqlValue makes a value safe inside a single-quoted KQL string literal.

@@ -142,3 +142,14 @@ func TestAzureMetricSource_FetchMetricsQuery_ViaSeam(t *testing.T) {
 	assert.Len(t, out.Results[0].Payload, 1)
 	assert.Equal(t, []float64{42}, out.Results[0].Payload[0].Values)
 }
+
+func TestInjectAzureKqlAfterTable_SkipsLetAndComments(t *testing.T) {
+	// A pipe inside a let/string before the first real pipe must not be the
+	// injection point; the clause goes after the table line, before the op.
+	raw := "// preamble\nlet prefix = \"a|b\";\ncustomMetrics\n| summarize avg(value)"
+	out := injectAzureKqlAfterTable(raw, "| where ts > ago(1h)")
+	assert.Contains(t, out, "let prefix = \"a|b\";")
+	assert.Contains(t, out, "customMetrics\n| where ts > ago(1h)")
+	// the let-line pipe was not used as the split point
+	assert.NotContains(t, out, "let prefix = \"a\n")
+}
