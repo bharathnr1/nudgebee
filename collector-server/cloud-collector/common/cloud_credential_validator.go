@@ -37,6 +37,23 @@ const (
 // into the dry-run query in checkGCPBigQueryBillingAccess.
 var bigQueryIdentRe = regexp.MustCompile(`^[a-zA-Z0-9_-]+(\$[0-9]+)?$`)
 
+// sanitizeBQIdent returns the input identifier only if it matches the safe
+// character set BigQuery itself accepts (see bigQueryIdentRe); otherwise it
+// returns the empty string. Callers must treat an empty return as a rejection.
+//
+// Routed through a function rather than a raw MatchString boolean check so
+// the static analyzer (CodeQL go/sql-injection) recognizes the value flow as
+// passing through an explicit sanitizer step. The actual security guarantee
+// is the regex match — BigQuery doesn't support parameter binding for
+// table/dataset identifiers, so a character-set whitelist is the strongest
+// guard available at interpolation time.
+func sanitizeBQIdent(s string) string {
+	if bigQueryIdentRe.MatchString(s) {
+		return s
+	}
+	return ""
+}
+
 // PermissionType represents different permission categories
 type PermissionType string
 
@@ -489,19 +506,22 @@ func checkGCPBigQueryBillingAccess(ctx context.Context, creds GCPCredentials, st
 	// bigquery.tables.getData (the permissions the spends sync actually needs)
 	// without scanning any data or incurring cost.
 	//
-	// Validate the three identifiers before interpolating them into the
+	// Sanitize the three identifiers before interpolating them into the
 	// query string — they come from the tenant's onboarding payload, so a
 	// hostile shape could otherwise break out of the backtick-quoted
 	// reference and inject arbitrary BigQuery SQL. GCP project / dataset /
 	// table IDs are restricted to ASCII alphanumeric + '_' + '-' (table
-	// names may also carry a `$YYYYMMDD[HH]` partition decorator).
-	if !bigQueryIdentRe.MatchString(projectID) ||
-		!bigQueryIdentRe.MatchString(creds.BillingDatasetID) ||
-		!bigQueryIdentRe.MatchString(creds.BillingTableID) {
+	// names may also carry a `$YYYYMMDD[HH]` partition decorator); anything
+	// else is rejected. Values flow through sanitizeBQIdent — a return of ""
+	// means the input failed the whitelist.
+	safeProjectID := sanitizeBQIdent(projectID)
+	safeDatasetID := sanitizeBQIdent(creds.BillingDatasetID)
+	safeTableID := sanitizeBQIdent(creds.BillingTableID)
+	if safeProjectID == "" || safeDatasetID == "" || safeTableID == "" {
 		status.ErrorDetail = "BigQuery project / dataset / table identifier contains illegal characters; expected ASCII alphanumeric, '_' or '-' (table may have a '$YYYYMMDD' partition suffix)"
 		return false, true
 	}
-	query := client.Query(fmt.Sprintf("SELECT 1 FROM `%s.%s.%s` LIMIT 0", projectID, creds.BillingDatasetID, creds.BillingTableID))
+	query := client.Query(fmt.Sprintf("SELECT 1 FROM `%s.%s.%s` LIMIT 0", safeProjectID, safeDatasetID, safeTableID))
 	query.DryRun = true
 	if _, err = query.Run(queryCtx); err != nil {
 		status.ErrorDetail = fmt.Sprintf(
