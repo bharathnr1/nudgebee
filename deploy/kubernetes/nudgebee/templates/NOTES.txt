@@ -38,7 +38,6 @@ kubectl get secret nudgebee -n {{ .Release.Namespace }} -o jsonpath='{.data.NEXT
      helm upgrade {{ .Release.Name }} ... --set nudgebee_secret.NEXTAUTH_DUMMY_CREDS_ENABLED=false
 
    The default in values.yaml is `false`; you have explicitly opted in.
-   Disable it again once your admin user and a real auth method are set up.
 {{- else }}
 
 ℹ️  Dummy credentials are disabled (the secure default). If you have not yet
