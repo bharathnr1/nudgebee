@@ -118,3 +118,33 @@ def test_nudge_digest_groups_accounts_and_caps_embeds():
     assert payload["content"] == "FinOps Daily Brief"
     assert len(payload["embeds"]) <= 10  # summary + accounts, capped
     assert "$500.00" in payload["embeds"][0]["description"]
+
+
+def test_none_safety_no_dollar_none_or_empty_bands():
+    # Missing optionals must render gracefully (em-dash), never "$None"/"None (None)"/"[None]".
+    r = get_discord_recommendation_resolution_template(
+        RecommendationResolutionParams(resource_name="x", rule_name="r", finops_score=None, finops_band=None)
+    )
+    rfields = {f["name"]: f["value"] for f in r["embeds"][0]["fields"]}
+    assert rfields["FinOps Score"] == "—"
+    assert rfields["Estimated Savings"] == "—"
+
+    digest = get_discord_recommendation_nudge_digest_template(
+        RecommendationNudgeDigestParams(
+            organization_name="A",
+            title="T",
+            total_recoverable_savings=None,
+            recommendations_by_account={
+                "a": AccountRecommendations(
+                    account_name="x",
+                    recommendations=[
+                        DigestRecommendation(
+                            id="1", rule_name="rs", resource_name="api", finops_score=0, finops_band=""
+                        )
+                    ],
+                )
+            },
+        )
+    )
+    body = digest["embeds"][1]["description"]
+    assert "[None]" not in body and "[]" not in body and "$None" not in body

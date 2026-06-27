@@ -9,6 +9,8 @@ COST_COLOR = 15844367  # gold
 
 def _money(amount: Any, currency: str = "USD") -> str:
     symbol = CURRENCY_SYMBOLS.get(currency, "")
+    if amount is None:
+        return "—"
     try:
         return f"{symbol}{float(amount):,.2f}"
     except (TypeError, ValueError):

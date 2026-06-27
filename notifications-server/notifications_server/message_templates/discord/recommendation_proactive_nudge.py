@@ -8,6 +8,8 @@ REC_COLOR = 3447003  # blue
 
 
 def _money(amount: Any) -> str:
+    if amount is None:
+        return "—"
     try:
         return f"${float(amount):,.2f}"
     except (TypeError, ValueError):

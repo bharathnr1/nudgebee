@@ -10,6 +10,8 @@ MAX_EMBEDS = 10
 
 
 def _money(amount: Any) -> str:
+    if amount is None:
+        return "—"
     try:
         return f"${float(amount):,.2f}"
     except (TypeError, ValueError):
@@ -35,9 +37,10 @@ def get_discord_recommendation_nudge_digest_template(params: RecommendationNudge
         recs = acct.recommendations[:MAX_RECS_PER_ACCOUNT]
         if not recs:
             continue
-        lines = [
-            f"• **{r.rule_name}** (`{r.resource_name}`) — {_money(r.estimated_savings)} [{r.finops_band}]" for r in recs
-        ]
+        lines = []
+        for r in recs:
+            band = f" [{r.finops_band}]" if r.finops_band else ""
+            lines.append(f"• **{r.rule_name}** (`{r.resource_name}`) — {_money(r.estimated_savings)}{band}")
         if len(acct.recommendations) > MAX_RECS_PER_ACCOUNT:
             lines.append(f"…and {len(acct.recommendations) - MAX_RECS_PER_ACCOUNT} more.")
         embeds.append(
