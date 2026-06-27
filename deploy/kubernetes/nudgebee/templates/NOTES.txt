@@ -37,8 +37,15 @@ kubectl get secret nudgebee -n {{ .Release.Namespace }} -o jsonpath='{.data.NEXT
 
      helm upgrade {{ .Release.Name }} ... --set nudgebee_secret.NEXTAUTH_DUMMY_CREDS_ENABLED=false
 
-   The default in values.yaml is intentionally `true` for the first-run
-   bootstrap experience; production overlays should disable it explicitly.
+   The default in values.yaml is `false`; you have explicitly opted in.
+   Disable it again once your admin user and a real auth method are set up.
+{{- else }}
+
+ℹ️  Dummy credentials are disabled (the secure default). If you have not yet
+   configured OAuth / LDAP / SSO and need to bootstrap the first admin user,
+   temporarily enable the shared-password provider, then disable it again:
+
+     helm upgrade {{ .Release.Name }} ... --set nudgebee_secret.NEXTAUTH_DUMMY_CREDS_ENABLED=true
 {{- end }}
 
 {{- $existing := lookup "v1" "Secret" .Release.Namespace "nudgebee" }}
