@@ -116,6 +116,13 @@ from notifications_server.message_templates.ms_teams.recommendation_resolution i
 from notifications_server.message_templates.google_chat.recommendation_resolution import (
     get_gchat_recommendation_resolution_template,
 )
+from notifications_server.message_templates.discord.slo import (
+    get_discord_slo_alert_template,
+    get_discord_grouped_slo_alert_template,
+)
+from notifications_server.message_templates.discord.grouped_anomaly import (
+    get_discord_grouped_anomaly_template,
+)
 
 template_mapping = {
     "default": {
@@ -158,7 +165,7 @@ template_mapping = {
         "slack": get_slo_alert_message_template,
         "ms_teams": get_teams_slo_alert_template,
         "google_chat": get_gchat_slo_alert_template,
-        "discord": None,
+        "discord": get_discord_slo_alert_template,
     },
     "auto_pilot_schedule_notification": {
         "common_params": get_auto_pilot_scheduled_message_params,
@@ -179,7 +186,7 @@ template_mapping = {
         "slack": get_grouped_slo_alerts_template,
         "ms_teams": get_grouped_slo_alerts_ms_teams_template,
         "google_chat": get_grouped_slo_alerts_gchat_template,
-        "discord": None,
+        "discord": get_discord_grouped_slo_alert_template,
     },
     "cloud_cost_summary": {
         "common_params": get_cloud_cost_summary_message_params,
@@ -193,7 +200,7 @@ template_mapping = {
         "slack": get_grouped_anomaly_alerts_template,
         "ms_teams": get_grouped_anomaly_alerts_ms_teams_template,
         "google_chat": get_grouped_anomaly_alerts_gchat_template,
-        "discord": None,
+        "discord": get_discord_grouped_anomaly_template,
     },
     "recommendation_nudge_digest": {
         "common_params": get_recommendation_nudge_digest_message_params,

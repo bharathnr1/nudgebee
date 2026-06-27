@@ -1022,6 +1022,8 @@ class MessageService:
                 return await self.send_google_chat_template_notification(
                     ip, template_func, param_value, session, tenant
                 )
+            case PlatformTypes.DISCORD.value:
+                return await self.send_discord_template_notification(ip, template_func, param_value, session, tenant)
             case _:
                 LOG.warning("Unable to identify platform %s with installation id %s", ip.platform, ip.id)
                 return None
@@ -1086,6 +1088,32 @@ class MessageService:
             "google_chat",
             reason=result.get("reason"),
             channel_id=result.get("channel_id"),
+        )
+
+    async def send_discord_template_notification(self, ip, template_func, param_value, session, tenant):
+        token = await self.discord_sender.acquire_discord_access_token(session, ip)
+        if not token:
+            return failed_response("discord", reason="Unable to authenticate discord installation")
+
+        from notifications_server.clients.discord_client import DiscordClient
+
+        # ip.to_channel may be a {name, id} dict; normalize to the bare channel id.
+        channel = normalize_channel(ip.to_channel)
+        channel_id = channel.get("id") if isinstance(channel, dict) else channel
+        if not channel_id:
+            return failed_response("discord", reason="No channel ID provided")
+
+        result = await asyncio.to_thread(
+            DiscordClient.chat_post, token=token, channel_id=channel_id, **template_func(param_value)
+        )
+
+        if result and result.get("ok"):
+            return success_response("discord", channel_id=channel_id, message_ts=result.get("ts"))
+
+        return failed_response(
+            "discord",
+            reason=result.get("error") if result else "Unknown error",
+            channel_id=channel_id,
         )
 
     # ----------------------------- Token + cache helpers -----------------------------
