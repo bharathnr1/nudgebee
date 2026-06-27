@@ -172,7 +172,7 @@ const TraceNode = ({ trace, level = 0, timeScale, startTimeMs, ganttWidth, rando
         >
           <Box sx={{ display: 'flex', alignItems: 'center', pl: level * 2 + 2 }}>
             {hasChildren ? (
-              <IconButton size='small' onClick={toggleExpand} sx={{ p: 0 }}>
+              <IconButton size='small' onClick={toggleExpand} sx={{ p: 0 }} aria-label={isExpanded ? 'Collapse row' : 'Expand row'}>
                 {isExpanded ? <KeyboardArrowDownIcon /> : <KeyboardArrowRightIcon />}
               </IconButton>
             ) : (

@@ -1960,7 +1960,11 @@ const KubernetesWorkloadsTable = ({ accountId, resource_ids = [] }) => {
                       </Typography>
                       <Box display='flex' alignItems='center' gap={1}>
                         <Typography>{gitDetails.codeRepo}</Typography>
-                        <IconButton size='small' onClick={() => window.open(gitDetails.codeRepo, '_blank')}>
+                        <IconButton
+                          size='small'
+                          aria-label='Open source code repository in new tab'
+                          onClick={() => window.open(gitDetails.codeRepo, '_blank')}
+                        >
                           <OpenInNewIcon fontSize='small' />
                         </IconButton>
                       </Box>
@@ -1974,7 +1978,11 @@ const KubernetesWorkloadsTable = ({ accountId, resource_ids = [] }) => {
                         </Typography>
                         <Box display='flex' alignItems='center' gap={1}>
                           <Typography>{gitDetails.ciRepo}</Typography>
-                          <IconButton size='small' onClick={() => window.open(gitDetails.ciRepo, '_blank')}>
+                          <IconButton
+                            size='small'
+                            aria-label='Open CI/deployment repository in new tab'
+                            onClick={() => window.open(gitDetails.ciRepo, '_blank')}
+                          >
                             <OpenInNewIcon fontSize='small' />
                           </IconButton>
                         </Box>
@@ -1995,7 +2003,11 @@ const KubernetesWorkloadsTable = ({ accountId, resource_ids = [] }) => {
                         </Typography>
                         <Box display='flex' alignItems='center' gap={1}>
                           <Typography>{gitDetails.hash.substring(0, 8)}</Typography>
-                          <IconButton size='small' onClick={() => window.open(`${gitDetails.codeRepo}/commit/${gitDetails.hash}`, '_blank')}>
+                          <IconButton
+                            size='small'
+                            aria-label='Open commit in repository in new tab'
+                            onClick={() => window.open(`${gitDetails.codeRepo}/commit/${gitDetails.hash}`, '_blank')}
+                          >
                             <OpenInNewIcon fontSize='small' />
                           </IconButton>
                         </Box>
