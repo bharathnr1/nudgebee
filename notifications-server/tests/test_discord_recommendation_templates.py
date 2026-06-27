@@ -120,20 +120,27 @@ def test_nudge_digest_groups_accounts_and_caps_embeds():
     assert "$500.00" in payload["embeds"][0]["description"]
 
 
-def test_none_safety_no_dollar_none_or_empty_bands():
-    # Missing optionals must render gracefully (em-dash), never "$None"/"None (None)"/"[None]".
+def test_money_helpers_are_none_safe():
+    # The _money guards are defensive: render an em-dash for None rather than "$None"/"None".
+    from notifications_server.message_templates.discord.cloud_cost_summary import _money as cost_money
+    from notifications_server.message_templates.discord.recommendation_resolution import _money as res_money
+
+    assert cost_money(None) == "—"
+    assert res_money(None) == "—"
+
+
+def test_empty_finops_band_renders_cleanly():
+    # finops_band is a str field, so "" is reachable; it must not render "(...)"/"[]".
     r = get_discord_recommendation_resolution_template(
-        RecommendationResolutionParams(resource_name="x", rule_name="r", finops_score=None, finops_band=None)
+        RecommendationResolutionParams(resource_name="x", rule_name="r", finops_score=0, finops_band="")
     )
     rfields = {f["name"]: f["value"] for f in r["embeds"][0]["fields"]}
-    assert rfields["FinOps Score"] == "—"
-    assert rfields["Estimated Savings"] == "—"
+    assert rfields["FinOps Score"] == "0"  # no "(…)" appended when band is empty
 
     digest = get_discord_recommendation_nudge_digest_template(
         RecommendationNudgeDigestParams(
             organization_name="A",
             title="T",
-            total_recoverable_savings=None,
             recommendations_by_account={
                 "a": AccountRecommendations(
                     account_name="x",
@@ -147,4 +154,4 @@ def test_none_safety_no_dollar_none_or_empty_bands():
         )
     )
     body = digest["embeds"][1]["description"]
-    assert "[None]" not in body and "[]" not in body and "$None" not in body
+    assert "[]" not in body and "[None]" not in body
