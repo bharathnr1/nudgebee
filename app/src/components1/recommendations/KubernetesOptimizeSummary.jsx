@@ -472,6 +472,32 @@ const KubernetesOptimizeSummary = () => {
   }, [selectedCluster, loadInforgraphicData, loadInforgraphicNodeRecommendationData]);
 
   const getNodeRecommendation = async (selectedCluster, includeGraviton) => {
+    if (selectedCluster?.value === 'demo') {
+      return {
+        ml_generate_node_recommendations: {
+          data: {
+            current_instance_type: {
+              cost: 7.2,
+              number_of_nodes: 3,
+              total_cpu: 24,
+              total_memory: 96,
+              instance_types: ['m5.2xlarge', 'm5.2xlarge', 'm5.2xlarge'],
+              graviton: false,
+            },
+            recommended_instance_type: [
+              {
+                cost: 4.5,
+                number_of_nodes: 2,
+                total_cpu: 16,
+                total_memory: 64,
+                instance_types: ['m5.4xlarge', 'm5.4xlarge'],
+                graviton: false,
+              },
+            ],
+          },
+        },
+      };
+    }
     const tenantId = session?.tenant?.id;
     if (!tenantId) {
       console.error('NodeRecommendation skipped - no active tenant session found');

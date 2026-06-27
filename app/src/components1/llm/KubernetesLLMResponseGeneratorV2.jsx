@@ -857,15 +857,14 @@ const KubernetesLLMResponseGenerator = ({
       showStatusIndicator={true}
       headerStyle={true}
       showIndicator={true}
-      rounded={'0px'}
+      rounded={0}
       onChange={handleDropdownChange}
       noLabel
       onClusterDataLoaded={handleClusterData}
       clusterData={selectedCluster}
-      minWidth={'224px'}
+      minWidth={ds.space.mul(0, 112)}
       groupByCloudProvider
       showPadding={true}
-      customStyle={{ height: `${ds.space.mul(1, 7)} !important` }}
       showSmallTopPadding={false}
     />
   );
@@ -930,7 +929,7 @@ const KubernetesLLMResponseGenerator = ({
                 justifyContent: 'space-between',
                 zIndex: 30,
                 position: 'sticky',
-                top: '0px',
+                top: 0,
                 padding: `${ds.space.mul(0, 5)} ${ds.space[5]}`,
               }}
             >
@@ -963,17 +962,17 @@ const KubernetesLLMResponseGenerator = ({
                     minHeight: `${ds.space[6]} !important`,
                   },
                   '& .MuiFormControl-root': {
-                    margin: '0px !important',
+                    margin: '0 !important',
                     fontSize: 'var(--ds-text-title) !important',
                   },
                   '& .MuiOutlinedInput-notchedOutline': {
                     border: showBorder ? 'inherit' : 'none !important',
                   },
                   '& .MuiInputBase-sizeSmall': {
-                    padding: `${ds.space[1]} ${ds.space.mul(1, 10)} ${ds.space.mul(0, 3)} 0px !important`,
+                    padding: `${ds.space[1]} ${ds.space.mul(1, 10)} ${ds.space.mul(0, 3)} 0 !important`,
                   },
                   '& li': {
-                    paddingLeft: '0px !important',
+                    paddingLeft: '0 !important',
                   },
                 }}
               >
@@ -997,7 +996,7 @@ const KubernetesLLMResponseGenerator = ({
                 backgroundColor: 'var(--ds-background-100)',
               }}
             >
-              <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%', position: 'sticky', top: '0px' }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%', position: 'sticky', top: 0 }}>
                 <Box sx={{ padding: `${ds.space.mul(0, 5)} ${ds.space[5]}` }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', gap: ds.space[2] }}>
                     <SafeIcon src={getNubiIconUrl()} alt={assistantName} width={40} height={40} />
@@ -1056,9 +1055,9 @@ const KubernetesLLMResponseGenerator = ({
                       tooltipStyle={{
                         backgroundColor: 'var(--ds-background-100)',
                         color: 'var(--ds-gray-700)',
-                        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+                        boxShadow: 'var(--ds-overlay-shadow)',
                         padding: 0,
-                        border: '1px solid rgba(0,0,0,0.08)',
+                        border: '1px solid var(--ds-gray-alpha-200)',
                         borderRadius: ds.radius.lg,
                       }}
                       title={
@@ -1203,20 +1202,20 @@ const KubernetesLLMResponseGenerator = ({
                       minHeight: `${ds.space[6]} !important`,
                     },
                     '& .MuiAutocomplete-input': {
-                      paddingTop: '0px !important',
+                      paddingTop: '0 !important',
                     },
                     '& .MuiFormControl-root': {
-                      margin: '0px !important',
+                      margin: '0 !important',
                       fontSize: 'var(--ds-text-title) !important',
                     },
                     '& .MuiOutlinedInput-notchedOutline': {
                       border: showBorder ? 'inherit' : 'none !important',
                     },
                     '& .MuiOutlinedInput-root': {
-                      padding: `${ds.space[1]} ${ds.space.mul(1, 10)} ${ds.space[1]} 0px !important`,
+                      padding: `${ds.space[1]} ${ds.space.mul(1, 10)} ${ds.space[1]} 0 !important`,
                     },
                     '& li': {
-                      paddingLeft: '0px !important',
+                      paddingLeft: '0 !important',
                     },
                   }}
                 >
@@ -1233,9 +1232,9 @@ const KubernetesLLMResponseGenerator = ({
               position: 'relative',
               mx: 'auto',
               maxWidth: popup ? '100%' : '60%',
-              mb: popup ? '0px' : isChatScreen ? ds.space.mul(1, 40) : '0px',
-              px: popup ? ds.space.mul(1, 5) : '0px',
-              pb: popup && (selectedSessionId != '' || selectedConversationId != '') ? ds.space.mul(0, 75) : popup ? ds.space.mul(0, 5) : '0px',
+              mb: popup ? 0 : isChatScreen ? ds.space.mul(1, 40) : 0,
+              px: popup ? ds.space.mul(1, 5) : 0,
+              pb: popup && (selectedSessionId != '' || selectedConversationId != '') ? ds.space.mul(0, 75) : popup ? ds.space.mul(0, 5) : 0,
               ...(popup && {
                 flex: 1,
                 height: 0,
@@ -1283,7 +1282,7 @@ const KubernetesLLMResponseGenerator = ({
                 flexDirection={'column'}
                 position={'relative'}
                 sx={{
-                  mt: selectedSessionId == '' && selectedConversationId == '' && !popup ? ds.space.mul(1, 25) : '0px',
+                  mt: selectedSessionId == '' && selectedConversationId == '' && !popup ? ds.space.mul(1, 25) : 0,
                   ...(popup &&
                     selectedSessionId == '' &&
                     selectedConversationId == '' && {
@@ -1291,7 +1290,7 @@ const KubernetesLLMResponseGenerator = ({
                       pb: ds.space.mul(1, 5),
                     }),
                   '@media (max-width: 1280px)': {
-                    mt: selectedSessionId == '' && selectedConversationId == '' && !popup ? ds.space.mul(1, 15) : '0px',
+                    mt: selectedSessionId == '' && selectedConversationId == '' && !popup ? ds.space.mul(1, 15) : 0,
                   },
                 }}
               >
@@ -1321,8 +1320,8 @@ const KubernetesLLMResponseGenerator = ({
                       maxWidth: popup ? '100%' : ds.space.mul(0, 362),
                       mx: 'auto',
                       width: '100%',
-                      mb: popup ? '0px' : ds.space[3],
-                      mt: popup ? 'auto' : '0px',
+                      mb: popup ? 0 : ds.space[3],
+                      mt: popup ? 'auto' : 0,
                       '@media (max-width: 1300px)': {
                         maxWidth: popup ? '100%' : ds.space.mul(0, 245),
                       },
@@ -1332,12 +1331,12 @@ const KubernetesLLMResponseGenerator = ({
                       className={popup ? '' : 'animated-box'}
                       style={popup ? {} : { animationDelay: '0.3s' }}
                       sx={{
-                        p: popup ? '0px' : ds.space.mul(0, 3),
+                        p: popup ? 0 : ds.space.mul(0, 3),
                         borderRadius: ds.radius.xl,
                         background: popup
                           ? 'transparent'
                           : 'linear-gradient(to right,rgb(96, 165, 250, 0.2), rgb(96, 165, 250, 0.1), rgb(96, 165, 250, 0.2))',
-                        mt: popup ? '0px' : ds.space.mul(1, 5),
+                        mt: popup ? 0 : ds.space.mul(1, 5),
                         mb: ds.space[3],
                         mx: 'auto',
                       }}
@@ -1357,12 +1356,12 @@ const KubernetesLLMResponseGenerator = ({
                           padding: popup ? `${ds.space.mul(0, 5)} ${ds.space[4]}` : `${ds.space[4]} ${ds.space.mul(1, 5)}`,
                           '& textarea': {
                             width: '100%',
-                            border: '0px',
+                            border: 0,
                             resize: 'none',
                             boxShadow: 'none',
                             backgroundColor: 'var(--ds-background-100)',
                             minHeight: popup ? ds.space[5] : ds.space.mul(1, 20),
-                            px: '0px',
+                            px: 0,
                             '&:focus': {
                               boxShadow: 'none',
                             },
@@ -1378,10 +1377,10 @@ const KubernetesLLMResponseGenerator = ({
                             },
                           },
                           '& .MuiOutlinedInput-notchedOutline': {
-                            border: '0px !important',
+                            border: '0 !important',
                           },
                           '& button': {
-                            padding: `0px ${ds.space.mul(0, 5)} !important`,
+                            padding: `0 ${ds.space.mul(0, 5)} !important`,
                           },
                         }}
                       >
@@ -1389,8 +1388,8 @@ const KubernetesLLMResponseGenerator = ({
                           functionSuggestions={allFunctions}
                           ref={textareaRef}
                           value={generateQuestionText}
-                          fontSize='14px'
-                          fontWeight='400'
+                          fontSize='var(--ds-text-body-lg)'
+                          fontWeight='var(--ds-font-weight-regular)'
                           placeholder={popup ? 'Ask a question...' : 'Ask me about troubleshooting, error logs, resource usage, or optimizations.'}
                           maxRows={popup ? 4 : 3}
                           minRows={popup ? 1 : 3}
@@ -1567,7 +1566,7 @@ const KubernetesLLMResponseGenerator = ({
                         key={suggestion.id || idx}
                         sx={{
                           width: '100%',
-                          p: `${ds.space[2]} 0px`,
+                          p: `${ds.space[2]} 0`,
                           borderBottom: `0.5px solid ${'var(--ds-gray-200)'}`,
                           cursor: 'pointer',
                           display: 'flex',
@@ -1639,25 +1638,25 @@ const KubernetesLLMResponseGenerator = ({
                   maxWidth: '60%',
                   mx: 'auto',
                   position: 'fixed',
-                  bottom: '0px',
+                  bottom: 0,
                   left: ds.space.mul(1, 25),
-                  right: '0px',
+                  right: 0,
                   zIndex: 10,
                   backgroundColor: 'transparent',
-                  px: '0px',
+                  px: 0,
                   transform: isConversationListVisible ? 'translateX(125px)' : 'translateX(0)',
                   transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                 }),
                 ...(popup && {
                   flexShrink: 0,
                   position: 'absolute',
-                  bottom: '0px',
+                  bottom: 0,
                   left: ds.space.mul(1, 5),
                   right: ds.space.mul(1, 5),
                   backgroundColor: 'var(--ds-background-100)',
                   boxSizing: 'border-box',
                 }),
-                pb: popup ? ds.space.mul(0, 5) : '0px',
+                pb: popup ? ds.space.mul(0, 5) : 0,
               }}
             >
               {messages.length > 0 && <JumpToLatestPill scrollContainerRef={scrollContainerRef} />}
@@ -1688,14 +1687,14 @@ const KubernetesLLMResponseGenerator = ({
                     borderRadius: ds.radius.xl,
                     border: `1px solid var(--ds-blue-500) !important`,
                     boxShadow: '0px 2px 7px 0px #3B82F60F,0px 0px 10px -1px #3B82F638',
-                    mt: '0px',
+                    mt: 0,
                     padding: popup ? `${ds.space[3]} ${ds.space[4]}` : `${ds.space.mul(0, 5)} ${ds.space[4]}`,
                     width: '100%',
                     boxSizing: 'border-box',
-                    mb: popup ? ds.space[2] : '0px',
+                    mb: popup ? ds.space[2] : 0,
                     '& textarea': {
                       width: '100%',
-                      border: '0px',
+                      border: 0,
                       resize: 'none',
                       boxShadow: 'none',
                       maxHeight: popup ? '30vh' : undefined,
@@ -1712,18 +1711,18 @@ const KubernetesLLMResponseGenerator = ({
                       },
                     },
                     '& .MuiOutlinedInput-notchedOutline': {
-                      border: '0px !important',
+                      border: '0 !important',
                     },
                     '& button': {
-                      padding: `0px ${ds.space.mul(0, 5)} !important`,
+                      padding: `0 ${ds.space.mul(0, 5)} !important`,
                     },
                   }}
                 >
                   <AutoSuggestTextarea
                     functionSuggestions={allFunctions}
                     ref={textareaRef}
-                    fontSize='14px'
-                    fontWeight='400'
+                    fontSize='var(--ds-text-body-lg)'
+                    fontWeight='var(--ds-font-weight-regular)'
                     value={generateQuestionText}
                     placeholder='Ask a question...'
                     maxRows={popup ? 20 : 8}

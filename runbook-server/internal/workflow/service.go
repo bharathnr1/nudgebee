@@ -13,7 +13,6 @@ import (
 	"nudgebee/runbook/internal/model" // Updated import
 	"nudgebee/runbook/internal/tasks"
 	aiTasks "nudgebee/runbook/internal/tasks/ai"
-	"nudgebee/runbook/internal/tasks/testutils"
 	"nudgebee/runbook/internal/tasks/types"
 	"nudgebee/runbook/services/audit"
 	"nudgebee/runbook/services/cloud"
@@ -556,7 +555,7 @@ func (s *Service) handleWorkflowTrigger(ctx *security.RequestContext, id, tenant
 	// Live execution snapshot for scheduled runs, resolved lazily on the first
 	// schedule trigger so webhook-only workflows skip the lookup. Scheduled runs
 	// must bake and execute the live version, not the draft (H1).
-	var liveExecDef *model.WorkflowDefinition
+	var liveExecDef model.WorkflowDefinition
 	var liveVersionMemo map[string]any
 
 	// Process all triggers
@@ -591,15 +590,15 @@ func (s *Service) handleWorkflowTrigger(ctx *security.RequestContext, id, tenant
 					// Create or update this specific schedule. Resolve the live
 					// version once (the schedule executes it, not the draft) and
 					// reuse it across every schedule trigger on this workflow.
-					if liveExecDef == nil {
+					if liveVersionMemo == nil {
 						d, m, rerr := s.resolveLiveExecution(ctx.GetContext(), id)
 						if rerr != nil {
 							return nil, "", rerr
 						}
-						liveExecDef, liveVersionMemo = &d, m
+						liveExecDef, liveVersionMemo = d, m
 					}
 					paused := wf.Status == model.WorkflowStatusPaused
-					err := s.createOrUpdateSchedule(ctx.GetContext(), id, tenantId, accountId, wf, scheduleCount, cron, overlapPolicy, catchupWindow, inputs, paused, *liveExecDef, liveVersionMemo)
+					err := s.createOrUpdateSchedule(ctx.GetContext(), id, tenantId, accountId, wf, scheduleCount, cron, overlapPolicy, catchupWindow, inputs, paused, liveExecDef, liveVersionMemo)
 					if err != nil {
 						return nil, "", fmt.Errorf("failed to create or update schedule index %d: %w", scheduleCount, err)
 					}
@@ -3195,6 +3194,36 @@ func (s *Service) ListAllTasks(ctx *security.RequestContext) model.ListTaskDefin
 	}
 }
 
+// newIsolatedTaskContext builds a TaskContext for one-off task execution that
+// is NOT part of a real Temporal workflow run — the "Run Task" tester and MCP
+// tool listing. It carries the real store / temporal client / data converter,
+// but deliberately leaves workflow id, name and run id empty: there is no
+// automation run to attribute, so downstream consumers (e.g. the notification
+// tracing footer in notifications.im) must not fabricate a workflow link.
+//
+// This previously used testutils.NewTestTaskContext, a unit-test helper that
+// stamped a random uuid as the workflow id and the literal name "trigger-task"
+// onto every isolated run — which surfaced as a Slack/Teams footer linking to a
+// bogus /workflow/<random-uuid> URL.
+func (s *Service) newIsolatedTaskContext(ctx *security.RequestContext, accountId string) types.TaskContext {
+	return types.NewTemporalTaskContext(
+		ctx.GetContext(),
+		ctx.GetSecurityContext().GetTenantId(),
+		accountId,
+		"", // workflowID — isolated run, not tied to a workflow execution
+		ctx.GetSecurityContext().GetUserId(),
+		"", // workflowName — empty so the tracing footer/link is omitted
+		"", // userDisplayName
+		s.temporalClient,
+		s.dataConverter,
+		s.store,
+		"", // workflowRunID
+		"", // taskID
+		ctx.GetLogger(),
+		false, // dryRun
+	)
+}
+
 func (s *Service) ExecuteTask(ctx *security.RequestContext, accountId, taskType string, params map[string]any) (any, error) {
 	if !ctx.GetSecurityContext().HasAccountAccess(accountId, security.SecurityAccessTypeCreate) {
 		return nil, common.ErrorUnauthorized("account not accessible")
@@ -3252,8 +3281,8 @@ func (s *Service) ExecuteTask(ctx *security.RequestContext, accountId, taskType 
 		renderedParams = params
 	}
 
-	// Create a test TaskContext for execution
-	taskCtx := testutils.NewTestTaskContext(tenantId, accountId, ctx.GetSecurityContext().GetUserId(), ctx.GetLogger())
+	// Isolated execution: real store/client, no fabricated workflow identity.
+	taskCtx := s.newIsolatedTaskContext(ctx, accountId)
 	return task.Execute(taskCtx, renderedParams)
 }
 
@@ -3262,8 +3291,7 @@ func (s *Service) ListMCPTools(ctx *security.RequestContext, accountId string, p
 		return nil, common.ErrorUnauthorized("account not accessible")
 	}
 
-	tenantId := ctx.GetSecurityContext().GetTenantId()
-	taskCtx := testutils.NewTestTaskContext(tenantId, accountId, ctx.GetSecurityContext().GetUserId(), ctx.GetLogger())
+	taskCtx := s.newIsolatedTaskContext(ctx, accountId)
 
 	mcpTask := &aiTasks.MCPTask{}
 	tools, err := mcpTask.ListTools(taskCtx, params)

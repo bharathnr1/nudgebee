@@ -28,7 +28,7 @@ const UtilizationBar = ({ pct }: { pct: number }) => (
       variant='determinate'
       value={Math.min(pct, 100)}
       sx={{
-        height: '8px',
+        height: ds.space[2],
         borderRadius: ds.radius.sm,
         backgroundColor: ds.gray[200],
         '& .MuiLinearProgress-bar': {
@@ -82,7 +82,7 @@ const PVRightSizingEvidence = ({ recommendation, estimatedSavings, cloudResource
             display: 'flex',
             alignItems: 'center',
             gap: ds.space[4],
-            p: '14px',
+            p: ds.space[3],
             backgroundColor: ds.blue[100],
             borderRadius: ds.radius.lg,
             border: `1px solid ${ds.blue[200]}`,
@@ -91,12 +91,12 @@ const PVRightSizingEvidence = ({ recommendation, estimatedSavings, cloudResource
           }}
         >
           <Box sx={{ textAlign: 'center' }}>
-            <Typography sx={{ fontSize: ds.text.caption, color: ds.gray[500], mb: '2px' }}>Current</Typography>
+            <Typography sx={{ fontSize: ds.text.caption, color: ds.gray[500], mb: ds.space[0] }}>Current</Typography>
             <Typography sx={{ fontSize: ds.text.heading, fontWeight: ds.weight.semibold, color: ds.red[600] }}>{capacityStr}</Typography>
           </Box>
           <ArrowForwardIcon sx={{ fontSize: '20px', color: ds.blue[700] }} />
           <Box sx={{ textAlign: 'center' }}>
-            <Typography sx={{ fontSize: ds.text.caption, color: ds.gray[500], mb: '2px' }}>Recommended</Typography>
+            <Typography sx={{ fontSize: ds.text.caption, color: ds.gray[500], mb: ds.space[0] }}>Recommended</Typography>
             <Typography sx={{ fontSize: ds.text.heading, fontWeight: ds.weight.semibold, color: ds.green[600] }}>{recommendedStr}</Typography>
           </Box>
         </Box>

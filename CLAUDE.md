@@ -358,6 +358,7 @@ Each service has its own CLAUDE.md where one exists:
 - `llm/code-analysis/CLAUDE.md` - Code-analysis engine
 - `collector-server/k8s-collector/relay-server/CLAUDE.md` - K8s relay gateway
 - `api-server/services/knowledge_graph/CLAUDE.md` - Knowledge graph subsystem
+- `api-server/services/anomoly/CLAUDE.md` - Anomaly detection subsystem (K8s metric + cloud spend, cross-service)
 - Other services (to be documented)
 
 **Always read service-specific CLAUDE.md before working on a service.**

@@ -60,7 +60,7 @@ const DetailsPanel = ({ fullRecommendation: rec, accounts = {} }: DetailsPanelPr
   const insight = getRecommendationInsight(category, ruleName, recData, rec);
 
   return (
-    <Box sx={{ p: '16px 20px', display: 'flex', flexDirection: 'column', gap: ds.space[4] }}>
+    <Box sx={{ p: `${ds.space[4]} 20px`, display: 'flex', flexDirection: 'column', gap: ds.space[4] }}>
       {/* Rule Title & Service */}
       <Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: ds.space[2], mb: '6px', flexWrap: 'wrap' }}>
@@ -238,7 +238,7 @@ const DetailsPanel = ({ fullRecommendation: rec, accounts = {} }: DetailsPanelPr
               {rec.ticket && (
                 <Box
                   sx={{
-                    p: '8px 12px',
+                    p: `${ds.space[2]} ${ds.space[3]}`,
                     borderRadius: ds.radius.lg,
                     backgroundColor: ds.gray[100],
                     border: `1px solid ${ds.gray[200]}`,
@@ -254,7 +254,7 @@ const DetailsPanel = ({ fullRecommendation: rec, accounts = {} }: DetailsPanelPr
               {rec.resolution?.type_reference_id && (
                 <Box
                   sx={{
-                    p: '8px 12px',
+                    p: `${ds.space[2]} ${ds.space[3]}`,
                     borderRadius: ds.radius.lg,
                     backgroundColor: ds.green[100],
                     border: `1px solid ${ds.green[200]}`,
@@ -632,7 +632,7 @@ const SummaryRow = ({ label, value, highlight }: { label: string; value: string;
 
 const InstanceBadge = ({ label, value, variant }: { label: string; value: string; variant: 'success' | 'error' }) => (
   <Box sx={{ textAlign: 'center' }}>
-    <Typography sx={{ fontSize: ds.text.caption, color: ds.gray[500], mb: '2px' }}>{label}</Typography>
+    <Typography sx={{ fontSize: ds.text.caption, color: ds.gray[500], mb: ds.space[0] }}>{label}</Typography>
     <Box
       component='span'
       sx={{
@@ -645,7 +645,7 @@ const InstanceBadge = ({ label, value, variant }: { label: string; value: string
         border: `1px solid ${variant === 'success' ? ds.green[200] : ds.red[200]}`,
         borderRadius: ds.radius.sm,
         px: ds.space[2],
-        py: '2px',
+        py: ds.space[0],
       }}
     >
       {value}

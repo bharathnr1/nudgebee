@@ -19,28 +19,6 @@ import CustomTooltip from '@components1/ds/Tooltip';
 import CheckIcon from '@mui/icons-material/Check';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
-const blue = {
-  100: '#DAECFF',
-  200: '#b6daff',
-  400: '#3399FF',
-  500: '#007FFF',
-  600: '#0072E5',
-  900: '#003A75',
-};
-
-const grey = {
-  50: '#F3F6F9',
-  100: '#E5EAF2',
-  200: '#DAE2ED',
-  300: '#C7D0DD',
-  400: '#B0B8C4',
-  500: '#9DA8B7',
-  600: '#6B7A90',
-  700: '#434D5B',
-  800: '#303740',
-  900: '#1C2025',
-};
-
 // Define custom props interface
 interface CustomTextareaProps extends TextareaAutosizeProps {
   fontSize?: string;
@@ -51,29 +29,29 @@ interface CustomTextareaProps extends TextareaAutosizeProps {
 }
 
 export const Textarea = styled(TextareaAutosize, { shouldForwardProp: (prop) => prop !== 'fontSize' && prop !== 'maxRows' })<CustomTextareaProps>(
-  ({ fontSize = '0.875rem', fontWeight = '400', width = '500px', maxRows = 5 }) => `
+  ({ fontSize = 'var(--ds-text-body-lg)', fontWeight = 'var(--ds-font-weight-regular)', width = ds.space.mul(0, 250), maxRows = 5 }) => `
     box-sizing: border-box;
     width: ${width};
     font-family: "Roboto", sans-serif;
-    font-size:  ${fontSize};
+    font-size: ${fontSize};
     font-weight: ${fontWeight};
     line-height: 1.5;
-    padding: 8px 12px;
-    border-radius: 8px;
-    color: ${grey[900]};
-    background: #fff;
-    border: 1px solid ${grey[200]};
-    box-shadow: 0px 2px 2px ${grey[50]};
-    max-height: calc(${maxRows} * 1.5em + 16px);
+    padding: ${ds.space[2]} ${ds.space[3]};
+    border-radius: var(--ds-radius-md);
+    color: var(--ds-gray-700);
+    background: var(--ds-background-100);
+    border: 1px solid var(--ds-gray-200);
+    box-shadow: 0 2px 2px var(--ds-gray-100);
+    max-height: calc(${maxRows} * 1.5em + ${ds.space[4]});
     overflow-y: auto !important;
     resize: vertical;
     &:hover {
-      border-color: ${blue[400]};
+      border-color: var(--ds-blue-400);
     }
   
     &:focus {
-      border-color: ${blue[400]};
-      box-shadow: 0 0 0 3px ${blue[200]};
+      border-color: var(--ds-blue-400);
+      box-shadow: 0 0 0 3px var(--ds-blue-200);
     }
   
     // firefox
@@ -82,7 +60,7 @@ export const Textarea = styled(TextareaAutosize, { shouldForwardProp: (prop) => 
     }
 
     &::-webkit-scrollbar {
-      width: 6px;
+      width: ${ds.space.mul(0, 3)};
       display: none;
     }
 
@@ -91,17 +69,17 @@ export const Textarea = styled(TextareaAutosize, { shouldForwardProp: (prop) => 
     }
 
     &::-webkit-scrollbar-track {
-      border-radius: 4px;
-      background-color: ${grey[200]};
+      border-radius: var(--ds-radius-sm);
+      background-color: var(--ds-gray-200);
     }
 
     &::-webkit-scrollbar-thumb {
-      background-color: ${grey[400]};
-      border-radius: 4px;
+      background-color: var(--ds-gray-400);
+      border-radius: var(--ds-radius-sm);
     }
 
     &::-webkit-scrollbar-thumb:hover {
-      background-color: ${grey[500]};
+      background-color: var(--ds-gray-500);
     }
   `
 );
@@ -341,9 +319,9 @@ export const ModelPickerPopover: React.FC<ModelPickerPopoverProps> = ({
                 padding: 'var(--ds-space-4)',
                 border: 'var(--ds-popover-border, 1px solid var(--ds-gray-200))',
                 borderRadius: 'var(--ds-radius-md)',
-                backgroundColor: '#fff',
-                boxShadow: 'var(--ds-shadow-md)',
-                width: 380,
+                backgroundColor: 'var(--ds-background-100)',
+                boxShadow: 'var(--ds-overlay-shadow)',
+                width: ds.space.mul(0, 190),
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 'var(--ds-space-2)' }}>
@@ -390,7 +368,7 @@ export const ModelPickerPopover: React.FC<ModelPickerPopoverProps> = ({
                 role='listbox'
                 aria-label={mode === 'blanket' ? 'Models' : `Models for ${PICKER_TIER_LABELS[activeTier]}`}
                 sx={{
-                  maxHeight: 108,
+                  maxHeight: ds.space.mul(0, 54),
                   overflowY: 'auto',
                   border: '1px solid var(--ds-gray-200)',
                   borderRadius: 'var(--ds-radius-sm)',
@@ -439,7 +417,7 @@ export const ModelPickerPopover: React.FC<ModelPickerPopoverProps> = ({
                       </Typography>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 'var(--ds-space-2)', flexShrink: 0 }}>
                         <Typography sx={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-gray-500)' }}>{m.provider}</Typography>
-                        {selected && <CheckIcon sx={{ fontSize: 14, color: 'var(--ds-blue-600)' }} />}
+                        {selected && <CheckIcon sx={{ fontSize: 'var(--ds-text-body-lg)', color: 'var(--ds-blue-600)' }} />}
                       </Box>
                     </MuiButtonBase>
                   );
@@ -452,7 +430,7 @@ export const ModelPickerPopover: React.FC<ModelPickerPopoverProps> = ({
                     fontSize: 'var(--ds-text-caption)',
                     color: 'var(--ds-amber-700)',
                     lineHeight: 1.3,
-                    mt: '4px',
+                    mt: ds.space[1],
                   }}
                 >
                   ⚠ Lighter models may struggle with multi-step planning. Consider a Pro model for All-calls mode.
@@ -464,7 +442,7 @@ export const ModelPickerPopover: React.FC<ModelPickerPopoverProps> = ({
                   sx={{
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '4px',
+                    gap: ds.space[1],
                     padding: 'var(--ds-space-2) var(--ds-space-3)',
                     backgroundColor: 'var(--ds-gray-100)',
                     border: '1px solid var(--ds-gray-200)',
@@ -475,7 +453,7 @@ export const ModelPickerPopover: React.FC<ModelPickerPopoverProps> = ({
                     const cur = stagedTier[t];
                     const showWarn = t === 'reasoning' && cur && isLowerTierForReasoning(cur.provider, cur.model);
                     return (
-                      <Box key={t} sx={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <Box key={t} sx={{ display: 'flex', flexDirection: 'column', gap: ds.space[0] }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--ds-space-2)' }}>
                           <Typography sx={{ fontSize: 'var(--ds-text-small)', color: 'var(--ds-gray-700)', fontWeight: 500 }}>
                             {PICKER_TIER_LABELS[t]}
@@ -496,9 +474,9 @@ export const ModelPickerPopover: React.FC<ModelPickerPopoverProps> = ({
                               <MuiButtonBase
                                 aria-label={`Clear ${PICKER_TIER_LABELS[t]}`}
                                 onClick={() => handleClearTier(t)}
-                                sx={{ padding: '2px', borderRadius: '50%', '&:hover': { backgroundColor: 'var(--ds-gray-200)' } }}
+                                sx={{ padding: ds.space[0], borderRadius: '50%', '&:hover': { backgroundColor: 'var(--ds-gray-200)' } }}
                               >
-                                <CloseIcon sx={{ fontSize: 12, color: 'var(--ds-gray-600)' }} />
+                                <CloseIcon sx={{ fontSize: 'var(--ds-text-small)', color: 'var(--ds-gray-600)' }} />
                               </MuiButtonBase>
                             )}
                           </Box>
@@ -783,18 +761,14 @@ const AutoSuggestTextarea: React.FC<AutoSuggestTextareaProps> = ({
   };
 
   const handleButtonClick = () => {
-    if (selectedAgent) {
-      clearSelectedAgent();
-    } else {
-      setSuggestionsTrigger('button');
-      setFilteredSuggestions(suggestionsAt);
-      setShowSuggestions(!showSuggestions);
-      setAnchorEl(agentButtonRef.current || textareaRef.current);
-      setSelectedIndex(-1);
-      setTimeout(() => {
-        textareaRef.current?.focus();
-      }, 0);
-    }
+    setSuggestionsTrigger('button');
+    setFilteredSuggestions(suggestionsAt);
+    setShowSuggestions(!showSuggestions);
+    setAnchorEl(agentButtonRef.current || textareaRef.current);
+    setSelectedIndex(-1);
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 0);
   };
 
   useEffect(() => {
@@ -827,7 +801,7 @@ const AutoSuggestTextarea: React.FC<AutoSuggestTextareaProps> = ({
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
           sx={{
-            maxHeight: `${maxRows * 24}px`,
+            maxHeight: `calc(${maxRows} * ${ds.space[5]})`,
             overflowY: 'auto',
             '::placeholder': {
               color: ds.gray[400],
@@ -999,7 +973,7 @@ const AutoSuggestTextarea: React.FC<AutoSuggestTextareaProps> = ({
         )}
       </div>
       {chatScreen && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: '0px' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0 }}>
           {/* Model Selector for chat screen — popover supports both
               "Blanket" (one model) and "Per category" (one model per tier)
               modes; mutually exclusive at the hook level. */}
@@ -1044,8 +1018,8 @@ const AutoSuggestTextarea: React.FC<AutoSuggestTextareaProps> = ({
                 height: ds.space.mul(0, 28),
                 borderRadius: 'var(--ds-radius-md)',
                 overflow: 'hidden',
-                border: `1px solid ${grey[200]}`,
-                backgroundColor: grey[50],
+                border: `1px solid var(--ds-gray-200)`,
+                backgroundColor: 'var(--ds-gray-100)',
               }}
             >
               <Box
@@ -1089,7 +1063,7 @@ const AutoSuggestTextarea: React.FC<AutoSuggestTextareaProps> = ({
             gap: 'var(--ds-space-2)',
             mt: 'var(--ds-space-1)',
             pt: 'var(--ds-space-1)',
-            borderTop: `1px solid ${grey[200]}`,
+            borderTop: `1px solid var(--ds-gray-200)`,
           }}
         >
           {imagesEnabled && (
@@ -1118,7 +1092,7 @@ const AutoSuggestTextarea: React.FC<AutoSuggestTextareaProps> = ({
                   cursor: 'pointer',
                   p: 'var(--ds-space-1)',
                   borderRadius: 'var(--ds-radius-sm)',
-                  '&:hover': { backgroundColor: grey[50] },
+                  '&:hover': { backgroundColor: 'var(--ds-gray-100)' },
                 }}
               >
                 <AttachFileIcon sx={{ fontSize: 'var(--ds-text-title)', color: ds.gray[600] }} />
@@ -1198,7 +1172,7 @@ const AutoSuggestTextarea: React.FC<AutoSuggestTextareaProps> = ({
               </>
             )}
           </Box>
-          <Box sx={{ width: '1px', height: ds.space.mul(0, 9), backgroundColor: grey[200], flexShrink: 0 }} />
+          <Box sx={{ width: '1px', height: ds.space.mul(0, 9), backgroundColor: 'var(--ds-gray-200)', flexShrink: 0 }} />
           {/* Model Selector — popover variant for non-chat (popup) flow.
               Same component as the chat-screen path; renders the same two
               modes (Blanket / Per category) with mutual exclusivity. */}

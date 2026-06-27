@@ -642,6 +642,29 @@ const QueryModeSwitcher = ({
                       }
                       sendConversationIdAndLLMResponseToParent(result.conversationId, queryData[queries[0]]);
                     }
+                  } else {
+                    // Extract the first code block from the response (handles indented fences, inline code, and multi-query responses)
+                    const fencedContent = result.response?.match(/```(?:[a-zA-Z0-9_-]*)\n?([\s\S]*?)```/)?.[1];
+                    const inlineContent =
+                      !fencedContent &&
+                      [...(result.response?.matchAll(/`([^`\n]+)`/g) || [])].map((m) => m[1].trim()).find((s) => s.includes('(') || s.includes('{'));
+                    const codeBlockContent = fencedContent || inlineContent || null;
+                    const rawQuery = codeBlockContent
+                      ?.split('\n')
+                      ?.filter((line) => !line.trim().startsWith('#'))
+                      ?.join('\n')
+                      ?.trim();
+                    if (!rawQuery) {
+                      snackbar.error('Could not extract a query from the AI response. Try asking for a specific query.');
+                    }
+                    if (rawQuery) {
+                      const key = uuidv4();
+                      setQuery(rawQuery);
+                      if (onQueryChange) {
+                        onQueryChange({ query: rawQuery, queryKeys: [key] });
+                      }
+                      sendConversationIdAndLLMResponseToParent(result.conversationId, rawQuery);
+                    }
                   }
                 }
               } else {

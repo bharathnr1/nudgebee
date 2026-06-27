@@ -633,7 +633,7 @@ const ResolveModal = ({ open, onClose, recommendation, clusterName, onSuccess }:
           '& .MuiPaper-root': {
             maxWidth: '1010px',
             '& .MuiDialogContent-root': {
-              padding: '16px 40px',
+              padding: `${ds.space[4]} 40px`,
             },
           },
         }}
@@ -642,8 +642,8 @@ const ResolveModal = ({ open, onClose, recommendation, clusterName, onSuccess }:
           <AutoPilotHeaderCard header='' data={autoPilotData} />
           {Object.keys(updatedData).length > 0
             ? Object.keys(updatedData).map((containerName) => (
-                <Box key={containerName} sx={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
+                <Box key={containerName} sx={{ display: 'flex', gap: ds.space[4], marginTop: ds.space[4] }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: ds.space[5], width: '100%' }}>
                     <Typography>Container Name- {containerName}</Typography>
                     <AutoOptimizeForm
                       handleSelectedAlgo={(buttonId: number, buttonValue: string) => handleSelectedAlgo(buttonId, buttonValue, containerName)}

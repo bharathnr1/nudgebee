@@ -36,7 +36,7 @@ dependencies = [
     "colorama==0.4.6",
     "cryptography==46.0.7",
     "dataclasses-json==0.6.7",
-    "datasets==3.6.0",
+    "datasets==4.0.0",
     "deprecated==1.2.18",
     "dill==0.3.8",
     "diskcache==5.6.3",

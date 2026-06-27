@@ -59,7 +59,7 @@ const ConfigurationEvidence = ({ recommendation, ruleName: _ruleName, estimatedS
                     borderBottom: idx < items.length - 1 ? `1px solid ${ds.gray[100]}` : 'none',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '2px',
+                    gap: ds.space[0],
                   }}
                 >
                   <Typography sx={{ fontSize: ds.text.small, color: ds.gray[700], lineHeight: 1.5 }}>{item.message || 'Unknown issue'}</Typography>

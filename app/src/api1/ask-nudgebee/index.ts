@@ -353,7 +353,14 @@ const api = {
     }
   },
   async aiGenerateInvestigate(data: any) {
-    if (data.account_id === 'demo') return null;
+    if (data.account_id === 'demo') {
+      return {
+        data: {
+          data: null,
+          errors: [{ message: 'Demo account does not have access.' }],
+        },
+      };
+    }
     const AI_TRIGGER_INVESTIGATE_RESPONSE = `
         mutation AiTriggerInvestigateResponse {
           ai_execute_investigation(request: __REQUEST__) {

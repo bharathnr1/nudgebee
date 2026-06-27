@@ -71,7 +71,7 @@ export const SavingsFooter = ({ savings }: { savings: number }) => {
           justifyContent: 'space-between',
           alignItems: 'center',
           py: ds.space[1],
-          px: '2px',
+          px: ds.space[0],
         }}
       >
         <Box>

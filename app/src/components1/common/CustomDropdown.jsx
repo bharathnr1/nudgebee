@@ -4,7 +4,7 @@ import { inputSx, inputCustomSx } from '@data/themes/inputField';
 import { Autocomplete, TextField, Paper, InputAdornment, ListItem, Tooltip, CircularProgress } from '@mui/material';
 import ClusterStatusIndicator from './ClusterStatusIndicator';
 import Link from 'next/link';
-import { colors } from 'src/utils/colors';
+import { ds } from 'src/utils/colors';
 import { MenuArrowDownIcon } from '@assets';
 import Text from './format/Text';
 import CloudProviderIcon from './CloudIcon';
@@ -114,7 +114,7 @@ const CustomDropdown = ({
 
   const CustomPaper = (props) => {
     const paperStyle = align == 'left' ? { left: 0 } : { right: 0 };
-    const positionStyle = dynamicDirection === 'up' ? { bottom: '40px' } : { top: '5px' };
+    const positionStyle = dynamicDirection === 'up' ? { bottom: ds.space.mul(2, 5) } : { top: 'var(--ds-overlay-anchor-gap)' };
 
     return (
       <Paper
@@ -136,7 +136,7 @@ const CustomDropdown = ({
             backgroundColor: 'var(--ds-overlay-bg)',
             boxShadow: 'var(--ds-overlay-shadow)',
           }),
-          padding: showPadding ? '8px 8px 8px 8px' : '0px',
+          padding: showPadding ? ds.space[2] : 0,
           // Match the ds/FilterDropdown open animation so all overlay surfaces
           // share the same motion vocabulary. Origin pinned to the side closer
           // to the trigger so the scale reads as "expanding out of the field".
@@ -150,14 +150,14 @@ const CustomDropdown = ({
             '100%': { opacity: 1, transform: 'scaleY(1) translateY(0)' },
           },
           '.MuiAutocomplete-listbox': {
-            padding: '0px',
+            padding: 0,
             overflowX: 'hidden',
             boxSizing: 'border-box',
             '&::-webkit-scrollbar': {
-              width: '4px !important',
+              width: `${ds.space[1]} !important`,
             },
             '&::-webkit-scrollbar-track': {
-              backgroundColor: colors.background.transparent,
+              backgroundColor: 'transparent',
             },
           },
           wordBreak: showBreakWord && 'break-word',
@@ -336,9 +336,9 @@ const CustomDropdown = ({
   };
 
   const groupedOptionStyles = {
-    backgroundColor: `${colors.background.primaryLightest} !important`,
-    borderRadius: 'var(--ds-radius-sm)',
-    borderLeft: `3px solid ${colors.border.primaryLight} !important`,
+    backgroundColor: `${ds.blue[100]} !important`,
+    borderRadius: ds.radius.sm,
+    borderLeft: `3px solid ${ds.blue[300]} !important`,
   };
 
   const renderOption = (props, option) => {
@@ -356,7 +356,7 @@ const CustomDropdown = ({
             fontFamily: 'Roboto',
             marginTop: 'var(--ds-space-1) !important',
             marginBottom: 'var(--ds-space-1) !important',
-            color: colors.text.secondary,
+            color: 'var(--ds-gray-600)',
             borderBottom: '1px solid',
             borderImage:
               'linear-gradient(to right, rgb(223, 223, 223) 0%, rgb(223, 223, 223) 30%, rgba(223, 223, 223, 0.6) 70%, rgba(223, 223, 223, 0.3) 90%, transparent 100%) 1',
@@ -370,11 +370,11 @@ const CustomDropdown = ({
             sx={{
               fontWeight: 'var(--ds-font-weight-semibold)',
               pointerEvents: 'none',
-              borderRadius: 'var(--ds-radius-sm)',
+              borderRadius: ds.radius.sm,
               fontSize: 'var(--ds-text-caption)',
               fontFamily: 'Poppins',
               letterSpacing: '-0.1px',
-              color: colors.text.secondary,
+              color: 'var(--ds-gray-600)',
               padding: 'var(--ds-space-1) var(--ds-space-2)',
             }}
           />
@@ -387,15 +387,15 @@ const CustomDropdown = ({
         key={key}
         {...propsWithoutKey}
         sx={{
-          padding: headerStyle && '0px !important',
-          fontSize: groupByCloudProvider && '14px',
+          padding: headerStyle && '0 !important',
+          fontSize: groupByCloudProvider && 'var(--ds-text-body-lg)',
           fontFamily: groupByCloudProvider && 'Roboto',
-          color: colors.text.secondary,
+          color: 'var(--ds-gray-700)',
           fontWeight: groupByCloudProvider && 400,
           borderRadius: 'var(--ds-radius-lg) !important',
-          ml: groupByCloudProvider && '6px',
-          border: groupByCloudProvider && `0.5px solid ${colors.border.white}`,
-          pl: groupByCloudProvider ? 4 : 2,
+          ml: groupByCloudProvider && ds.space.mul(0, 3),
+          border: groupByCloudProvider && `0.5px solid ${ds.background[100]}`,
+          pl: groupByCloudProvider ? ds.space[6] : ds.space[4],
           boxSizing: 'border-box',
           maxWidth: '96%',
           ...(groupByCloudProvider && {
@@ -408,15 +408,15 @@ const CustomDropdown = ({
             },
             '&[aria-selected="true"]': {
               ...groupedOptionStyles,
-              color: colors.text.secondary,
+              color: 'var(--ds-gray-700)',
               '& *': {
                 fontWeight: 'var(--ds-font-weight-medium) !important',
               },
             },
             '&[aria-selected="true"]:hover': {
-              color: colors.text.secondary,
+              color: 'var(--ds-gray-700)',
               fontWeight: 'var(--ds-font-weight-semibold) !important',
-              backgroundColor: colors.background.primaryLightest,
+              backgroundColor: ds.blue[100],
             },
             '&.Mui-focused': {
               color: 'var(--ds-gray-700)',
@@ -424,7 +424,7 @@ const CustomDropdown = ({
             },
           }),
           ...(!groupByCloudProvider && {
-            borderBottom: headerStyle && `1px solid ${colors.border.vertical}`,
+            borderBottom: headerStyle && `1px solid ${ds.gray[200]}`,
           }),
         }}
       >
@@ -441,7 +441,7 @@ const CustomDropdown = ({
         ) : (
           <span style={{ display: 'flex', width: '100%' }}>
             <Text
-              sx={{ fontSize: groupByCloudProvider && '12px' }}
+              sx={{ fontSize: groupByCloudProvider && 'var(--ds-text-small)' }}
               value={option?.label ?? option}
               showAutoEllipsis={showAutoEllipsis}
               placement='left'
@@ -479,7 +479,7 @@ const CustomDropdown = ({
       sx={{
         ...inputCustomSx,
         width: minWidth || 150,
-        minHeight: '36px',
+        minHeight: ds.space.mul(1, 9),
         border: !noBorder ? 'none' : '',
         '.MuiOutlinedInput-root.MuiInputBase-sizeSmall': {
           minHeight: minHeight,
@@ -489,20 +489,20 @@ const CustomDropdown = ({
         },
         '& .MuiOutlinedInput-root': {
           paddingLeft: showStatusIndicator && '0px !important',
-          paddingTop: showStatusIndicator && showSmallTopPadding && '7px !important',
+          paddingTop: showStatusIndicator && showSmallTopPadding && 'var(--ds-overlay-anchor-gap) !important',
         },
         ...customStyle,
         ...(isDisabled && {
           '& .MuiOutlinedInput-root': {
-            backgroundColor: colors.background.input,
-            borderColor: colors.border.secondary,
+            backgroundColor: ds.gray[100],
+            borderColor: ds.gray[300],
             pointerEvents: 'none',
             '.MuiOutlinedInput-notchedOutline': {
-              borderColor: colors.border.secondary,
+              borderColor: ds.gray[300],
             },
           },
           '& .MuiInputBase-input.Mui-disabled': {
-            color: colors.text.disabledInput,
+            color: ds.gray[400],
           },
         }),
       }}

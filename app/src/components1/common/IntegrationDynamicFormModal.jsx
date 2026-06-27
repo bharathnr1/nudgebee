@@ -8,6 +8,7 @@ import apiUser from '@api1/user';
 import { Modal } from './modal';
 import { Button } from '@components1/ds/Button';
 import apiIntegrations from '@api1/integrations';
+import { ENCRYPTED_MASK } from '@api1/integrations/helpers';
 import NDialog from './modal/NDialog';
 import { colors } from 'src/utils/colors';
 import CopyableText from './CopyableText';
@@ -237,8 +238,15 @@ const IntegrationDynamicFormModal = ({
       const formContext = {};
       let ready = true;
       for (const dep of field.depends_on) {
+        const depField = config.properties[dep];
         const raw = formValues[dep];
-        const val = raw == null ? '' : String(raw);
+        let val = raw == null ? '' : String(raw);
+        // Encrypted secrets are shown as a mask when editing an existing
+        // integration — the real plaintext never reaches the form. Never
+        // forward the mask as a value: the handler would use it verbatim as
+        // the password/token and fail auth upstream (e.g. Pinot HTTP 403).
+        // Blank it so the handler sees "no secret" and can prompt for re-entry.
+        if (depField?.is_encrypted && val === ENCRYPTED_MASK) val = '';
         formContext[dep] = val;
         if (val === '') {
           // Empty dep — only blocks the fetch if the dep field is *currently*
@@ -246,8 +254,13 @@ const IntegrationDynamicFormModal = ({
           // Conditionally-required deps that aren't required right now are
           // skipped, so e.g. an LDAP password field doesn't gate a NONE-auth
           // fetch.
-          const depField = config.properties[dep];
           if (depField && !isFieldRequired(dep, depField)) continue;
+          // A required *encrypted* secret that's empty (new integration) or
+          // masked (edit mode) shouldn't silently block the fetch. Let it
+          // through so the handler can return its own "re-enter <secret> to
+          // load suggestions" hint instead of leaving the field blank with no
+          // explanation.
+          if (depField?.is_encrypted) continue;
           ready = false;
           break;
         }

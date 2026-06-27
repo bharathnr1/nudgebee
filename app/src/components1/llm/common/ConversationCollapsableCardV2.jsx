@@ -65,7 +65,7 @@ function ConversationCollapsableCard({
           display: 'flex',
           flexDirection: 'column',
           padding: cardPadding,
-          backgroundColor: toolData.type == 'question' ? '#F6F6F6' : 'var(--ds-background-100)',
+          backgroundColor: toolData.type == 'question' ? 'var(--ds-gray-100)' : 'var(--ds-background-100)',
           borderTop: 'none',
           borderRadius: ds.radius.xl,
           cursor: (toolData.tool || toolData.type) === 'question' && textLength ? 'pointer' : 'default',

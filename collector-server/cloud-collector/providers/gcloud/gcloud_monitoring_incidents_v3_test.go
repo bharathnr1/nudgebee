@@ -26,11 +26,8 @@ func TestGCPIncidentsV3API(t *testing.T) {
 	projectID := os.Getenv("GCP_PROJECT_ID")
 	credsPath := os.Getenv("GCP_CREDENTIALS_JSON")
 
-	if projectID == "" {
-		projectID = "nudgebee-dev"
-	}
-	if credsPath == "" {
-		credsPath = "/path/to/creds.json"
+	if projectID == "" || credsPath == "" {
+		t.Skip("Skipping integration test: GCP_PROJECT_ID and GCP_CREDENTIALS_JSON required")
 	}
 
 	credsJSON, err := os.ReadFile(credsPath)
@@ -156,13 +153,13 @@ func TestGCPIncidentsV3API(t *testing.T) {
 func TestAlertStructureParsing(t *testing.T) {
 	// Sample alert JSON from GCP API
 	alertJSON := `{
-		"name": "projects/nudgebee-dev/alerts/12345",
+		"name": "projects/test-cluster-dev/alerts/12345",
 		"state": "OPEN",
 		"openTime": "2026-03-10T12:00:00Z",
 		"resource": {
 			"type": "gce_instance",
 			"labels": {
-				"project_id": "nudgebee-dev",
+				"project_id": "test-cluster-dev",
 				"instance_id": "1234567890",
 				"zone": "us-central1-a"
 			}
@@ -174,7 +171,7 @@ func TestAlertStructureParsing(t *testing.T) {
 			}
 		},
 		"policy": {
-			"name": "projects/nudgebee-dev/alertPolicies/67890",
+			"name": "projects/test-cluster-dev/alertPolicies/67890",
 			"displayName": "High CPU Usage",
 			"severity": "CRITICAL",
 			"userLabels": {
@@ -189,7 +186,7 @@ func TestAlertStructureParsing(t *testing.T) {
 	require.NoError(t, err, "Failed to parse alert JSON")
 
 	// Validate parsing
-	assert.Equal(t, "projects/nudgebee-dev/alerts/12345", alert.Name)
+	assert.Equal(t, "projects/test-cluster-dev/alerts/12345", alert.Name)
 	assert.Equal(t, AlertStateOpen, alert.State)
 	assert.Equal(t, "2026-03-10T12:00:00Z", alert.OpenTime)
 	assert.NotNil(t, alert.Resource)
@@ -199,14 +196,14 @@ func TestAlertStructureParsing(t *testing.T) {
 	assert.Equal(t, "High CPU Usage", alert.Policy.DisplayName)
 	assert.Equal(t, "CRITICAL", alert.Policy.Severity)
 
-	account := &providers.Account{AccountNumber: "nudgebee-dev"}
+	account := &providers.Account{AccountNumber: "test-cluster-dev"}
 	event := convertAlertToEvent(nil, nil, &alert, account)
 
 	assert.Equal(t, "test-vm", event.ResourceId, "Should use instance_name from metric labels")
 
 	// EventId should be stable fingerprint: policy:resource_type:resource_id
 
-	assert.Equal(t, "projects/nudgebee-dev/alertPolicies/67890:gce_instance:test-vm", event.EventId)
+	assert.Equal(t, "projects/test-cluster-dev/alertPolicies/67890:gce_instance:test-vm", event.EventId)
 	assert.Equal(t, "gce_instance: High CPU Usage", event.Title)
 	assert.Equal(t, providers.EventStatusFiring, event.EventStatus)
 	assert.Equal(t, providers.EventSeverityHigh, event.EventSeverity)
@@ -221,7 +218,7 @@ func TestAlertStructureParsing(t *testing.T) {
 	assert.Equal(t, "test-vm", event.Labels["gcp_event_instance"], "Should set gcp_event_instance for actions")
 	assert.Equal(t, "gce_instance", event.Labels["gcp_event_resource_type"], "Should set gcp_event_resource_type for actions")
 	assert.Equal(t, "Compute Engine", event.Labels["gcp_service_name"], "Should set gcp_service_name for actions")
-	assert.Equal(t, "nudgebee-dev", event.Labels["gcp_account"], "Should set gcp_account for actions")
+	assert.Equal(t, "test-cluster-dev", event.Labels["gcp_account"], "Should set gcp_account for actions")
 	assert.Equal(t, "us-central1-a", event.Labels["gcp_zone"], "Should set gcp_zone for CLI commands")
 	assert.Equal(t, "compute.googleapis.com/instance/cpu/utilization", event.Labels["gcp_event_metric_type"], "Should set gcp_event_metric_type for actions")
 }
@@ -301,7 +298,7 @@ func TestDeriveResourceTypeFromMetric(t *testing.T) {
 func TestDeriveResourceTypeWhenResourceTypeEmpty(t *testing.T) {
 	// Alert with NO resource.type but WITH metric.type
 	alertJSON := `{
-		"name": "projects/nudgebee-dev/alerts/12345",
+		"name": "projects/test-cluster-dev/alerts/12345",
 		"state": "OPEN",
 		"openTime": "2026-03-10T12:00:00Z",
 		"metric": {
@@ -309,7 +306,7 @@ func TestDeriveResourceTypeWhenResourceTypeEmpty(t *testing.T) {
 			"labels": {}
 		},
 		"policy": {
-			"name": "projects/nudgebee-dev/alertPolicies/67890",
+			"name": "projects/test-cluster-dev/alertPolicies/67890",
 			"displayName": "High CPU Usage"
 		}
 	}`
@@ -318,7 +315,7 @@ func TestDeriveResourceTypeWhenResourceTypeEmpty(t *testing.T) {
 	err := json.Unmarshal([]byte(alertJSON), &alert)
 	require.NoError(t, err)
 
-	account := &providers.Account{AccountNumber: "nudgebee-dev"}
+	account := &providers.Account{AccountNumber: "test-cluster-dev"}
 	event := convertAlertToEvent(nil, nil, &alert, account)
 
 	// Should derive resource type from metric type
@@ -330,13 +327,13 @@ func TestDeriveResourceTypeWhenResourceTypeEmpty(t *testing.T) {
 func TestAlertFallbackToInstanceID(t *testing.T) {
 	// Alert WITHOUT instance_name in metric labels
 	alertJSON := `{
-		"name": "projects/nudgebee-dev/alerts/12345",
+		"name": "projects/test-cluster-dev/alerts/12345",
 		"state": "OPEN",
 		"openTime": "2026-03-10T12:00:00Z",
 		"resource": {
 			"type": "gce_instance",
 			"labels": {
-				"project_id": "nudgebee-dev",
+				"project_id": "test-cluster-dev",
 				"instance_id": "3346138238029787252",
 				"zone": "us-central1-a"
 			}
@@ -346,7 +343,7 @@ func TestAlertFallbackToInstanceID(t *testing.T) {
 			"labels": {}
 		},
 		"policy": {
-			"name": "projects/nudgebee-dev/alertPolicies/67890",
+			"name": "projects/test-cluster-dev/alertPolicies/67890",
 			"displayName": "High CPU Usage"
 		}
 	}`
@@ -356,12 +353,12 @@ func TestAlertFallbackToInstanceID(t *testing.T) {
 	require.NoError(t, err)
 
 	// Convert to Event without HTTP client (simulates no API lookup available)
-	account := &providers.Account{AccountNumber: "nudgebee-dev"}
+	account := &providers.Account{AccountNumber: "test-cluster-dev"}
 	event := convertAlertToEvent(nil, nil, &alert, account)
 
 	// Without metric instance_name and without API lookup, should fall back to instance_id
 	assert.Equal(t, "3346138238029787252", event.ResourceId, "Should fall back to instance_id when instance_name not available")
 
 	// EventId fingerprint uses the fallback instance_id
-	assert.Equal(t, "projects/nudgebee-dev/alertPolicies/67890:gce_instance:3346138238029787252", event.EventId)
+	assert.Equal(t, "projects/test-cluster-dev/alertPolicies/67890:gce_instance:3346138238029787252", event.EventId)
 }

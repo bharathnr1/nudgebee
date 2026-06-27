@@ -23,7 +23,6 @@ const customJestConfig = {
     '^@pages/(.*)$': '<rootDir>/src/pages/$1',
     '^@styles/(.*)$': '<rootDir>/src/styles/$1',
     '^@utils/(.*)$': '<rootDir>/src/utils/$1',
-    '^@common/(.*)$': '<rootDir>/src/components1/common/$1',
 
     // Handle bare 'src/utils/...' imports used in some components
     '^src/utils/(.*)$': '<rootDir>/src/utils/$1',

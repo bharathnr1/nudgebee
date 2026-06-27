@@ -223,7 +223,7 @@ const InsightCard = ({ item, onClickResource, onAskNubi }: InsightCardProps) => 
                 composition='icon-only'
                 aria-label='Ask Nubi'
                 id={`ask-nubi-${item.id}`}
-                icon={<Box component='img' src={getNubiIconUrl()} sx={{ width: '16px', height: '16px' }} />}
+                icon={<Box component='img' src={getNubiIconUrl()} sx={{ width: ds.space[4], height: ds.space[4] }} />}
                 onClick={(e) => {
                   e.stopPropagation();
                   onAskNubi(item);
