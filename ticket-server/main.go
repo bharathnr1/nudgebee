@@ -9,6 +9,7 @@ import (
 	"nudgebee/tickets-server/routes"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/gin-contrib/pprof"
@@ -54,7 +55,15 @@ func main() {
 	}()
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
-	pprof.Register(router)
+	// ticket-server has no global inbound service-token middleware (it relies on
+	// network isolation), so there is no auth gate to register pprof behind.
+	// pprof heap/goroutine dumps can leak in-flight request state, so it must
+	// not be served unauthenticated by default — make it explicit opt-in via
+	// PPROF_ENABLED=true for diagnostics.
+	if strings.EqualFold(os.Getenv("PPROF_ENABLED"), "true") {
+		pprof.Register(router)
+		slog.Warn("pprof debug endpoints enabled at /debug/pprof (PPROF_ENABLED=true) — ensure this service is not externally reachable")
+	}
 	router.Use(gin.Recovery())
 	router.Use(sloggin.NewWithFilters(logger, sloggin.IgnorePath("/health")))
 
