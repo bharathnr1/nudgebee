@@ -409,28 +409,6 @@ func MatchesRuleWithOccurrence(event *models.Event, rule *TriageRule, occurrence
 	return true
 }
 
-// getEventOccurrenceNumber returns the occurrence number for an event from event_duplicates
-// Returns 0 if not found (meaning event hasn't been processed for duplicates or is the first)
-func getEventOccurrenceNumber(ctx context.Context, db *sqlx.DB, eventID, fingerprint, cloudAccountID string) int {
-	query := `
-		SELECT occurrence_number
-		FROM event_duplicates
-		WHERE event_id = $1
-		  AND fingerprint = $2
-		  AND cloud_account_id = $3
-		LIMIT 1
-	`
-
-	var occurrenceNumber int
-	err := db.GetContext(ctx, &occurrenceNumber, query, eventID, fingerprint, cloudAccountID)
-	if err != nil {
-		// Not found or error - return 0 (will be treated as first occurrence)
-		return 0
-	}
-
-	return occurrenceNumber
-}
-
 // ApplyTriageRuleActions applies the rule actions to an event
 // Only applies the winning rule type's actions based on priority:
 // Suppression > Classification > Scoring
@@ -686,21 +664,6 @@ func updateEventNBStatusFromEvent(ctx context.Context, db *sqlx.DB, eventID, nbS
 
 	_, err := db.ExecContext(ctx, query, nbStatus, eventID)
 	return err
-}
-
-// updateRuleMatchCount increments the match count for a rule
-func updateRuleMatchCount(ctx context.Context, db *sqlx.DB, ruleID string) {
-	query := `
-		UPDATE event_triage_rules
-		SET match_count = match_count + 1,
-		    last_matched_at = NOW()
-		WHERE id = $1
-	`
-
-	_, err := db.ExecContext(ctx, query, ruleID)
-	if err != nil {
-		slog.WarnContext(ctx, "Failed to update rule match count", "error", err, "rule_id", ruleID)
-	}
 }
 
 var (
