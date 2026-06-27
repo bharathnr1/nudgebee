@@ -22,6 +22,9 @@ func TestValidateProxyTargetURL(t *testing.T) {
 		{"link-local always blocked", "http://169.254.0.5/", false, true},
 		{"cloud metadata IP always blocked", "http://169.254.169.254/latest/meta-data/", false, true},
 		{"gcp metadata hostname blocked", "http://metadata.google.internal/computeMetadata/v1/", false, true},
+		{"gcp metadata trailing dot blocked", "http://metadata.google.internal./computeMetadata/v1/", false, true},
+		{"localhost trailing dot blocked", "http://localhost.:8080/", false, true},
+		{"link-local v6 with zone id blocked", "http://[fe80::1%25lo0]:8080/", false, true},
 		{"unspecified address blocked", "http://0.0.0.0:8080/", false, true},
 
 		{"bad scheme file", "file:///etc/passwd", false, true},

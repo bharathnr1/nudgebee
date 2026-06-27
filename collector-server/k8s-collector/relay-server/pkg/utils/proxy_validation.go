@@ -44,13 +44,24 @@ func ValidateProxyTargetURL(rawURL string, blockPrivate bool) error {
 		return fmt.Errorf("target URL has no host")
 	}
 
+	// A trailing dot makes an FQDN absolute but resolves identically, so strip
+	// it before the hostname checks (otherwise "localhost." bypasses them).
+	host = strings.TrimSuffix(host, ".")
+
 	lower := strings.ToLower(host)
 	if lower == "localhost" || strings.HasSuffix(lower, ".localhost") ||
 		lower == "metadata" || lower == "metadata.google.internal" {
 		return fmt.Errorf("target host %q is not an allowed proxy target", host)
 	}
 
-	if ip := net.ParseIP(host); ip != nil {
+	// Strip any IPv6 zone identifier (e.g. "fe80::1%eth0") before parsing —
+	// net.ParseIP rejects zoned addresses, which would otherwise let
+	// link-local IPs slip through the IP checks below.
+	ipHost := host
+	if idx := strings.IndexByte(ipHost, '%'); idx != -1 {
+		ipHost = ipHost[:idx]
+	}
+	if ip := net.ParseIP(ipHost); ip != nil {
 		if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified() {
 			return fmt.Errorf("target IP %s is in a blocked range (loopback/link-local/metadata)", host)
 		}
